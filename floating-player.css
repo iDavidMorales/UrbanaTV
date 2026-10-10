@@ -155,3 +155,21 @@ body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:100px}
  .urban-mini-info strong{font-size:11px}
 }
 @media(prefers-reduced-motion:reduce){.urban-mini-cover{animation:none!important}}
+
+
+/* Playlist button: always visible, labeled, and easy to tap */
+#urbanTracklistToggle{
+ display:inline-flex!important;align-items:center;justify-content:center;gap:7px;
+ width:auto!important;min-width:38px;height:34px;padding:0 10px!important;
+ font-size:11px!important;line-height:1;white-space:nowrap;
+ border:1px solid #45454b!important;border-radius:8px!important;
+ color:#d5ff36!important;background:#202023!important;
+}
+#urbanTracklistToggle span{display:inline!important;font-size:11px!important}
+#urbanTracklistToggle::before{display:none!important;content:none!important}
+#urbanTracklistToggle:hover{background:#2a2b24!important;border-color:#d5ff36!important}
+@media(max-width:700px){
+ #urbanTracklistToggle{grid-column:2;grid-row:3;width:auto!important;min-width:38px;height:30px;padding:0 9px!important;gap:5px;justify-self:end}
+ #urbanTracklistToggle span{font-size:10px!important}
+ .urban-mini-status{max-width:calc(100vw - 150px)}
+}
