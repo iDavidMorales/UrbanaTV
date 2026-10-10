@@ -27,6 +27,7 @@ function renderList(){
 }
 function show(){panel.hidden=false;open.setAttribute('aria-expanded','true');sync()}
 function hide(){panel.hidden=true;open.setAttribute('aria-expanded','false');audio.pause()}
+window.addEventListener('message',event=>{if(event.origin!==location.origin||!event.data||event.data.type!=='urbana-play-track')return;const frame=document.querySelector('#urbanRouteMount iframe');if(!frame||event.source!==frame.contentWindow)return;const i=tracks.findIndex(t=>t.file===event.data.file);if(i>=0){show();choose(i)}});
 open.addEventListener('click',()=>{panel.hidden?show():hide()});
 $('urbanMiniClose').addEventListener('click',hide);
 listToggle.addEventListener('click',()=>{list.hidden=!list.hidden;listToggle.setAttribute('aria-expanded',String(!list.hidden));listToggle.textContent=list.hidden?'☷ Lista de canciones':'☷ Ocultar canciones'});
