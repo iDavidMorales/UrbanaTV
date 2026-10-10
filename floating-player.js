@@ -7,10 +7,10 @@ let tracks=[],current=-1,lastSaved=0;const STATE_KEY='urbanatv:last-track:v1';le
 function persist(force=false){if(current<0||!tracks[current])return;const now=Date.now();if(!force&&now-lastSaved<2500)return;lastSaved=now;try{localStorage.setItem(STATE_KEY,JSON.stringify({file:tracks[current].file,time:Math.max(0,audio.currentTime||0),playing:!audio.paused,updated:now}))}catch{}}
 const safe=p=>typeof p==='string'&&((p.startsWith('/mp3/')&&!p.includes('..'))||(p.startsWith('https://')&&p.includes('.public.blob.vercel-storage.com/')));
 function sync(){
- toggle.textContent=audio.paused?'▶':'Ⅱ';toggle.setAttribute('aria-label',audio.paused?'Reproducir':'Pausar');
+ toggle.innerHTML=audio.paused?'<i class="fa-solid fa-play" aria-hidden="true"></i>':'<i class="fa-solid fa-pause" aria-hidden="true"></i>';toggle.setAttribute('aria-label',audio.paused?'Reproducir':'Pausar');toggle.title=audio.paused?'Reproducir':'Pausar';
  title.textContent=current>=0?tracks[current].title:'UrbanaTV Music';
  artist.textContent=current>=0?tracks[current].artist:'La música no es contenido, es vida';
- for(const [i,b] of [...list.querySelectorAll('button[data-index]')].entries()){b.classList.toggle('active',i===current);b.setAttribute('aria-current',i===current?'true':'false');b.querySelector('.track-indicator').textContent=i===current&&!audio.paused?'♫':'▶'}
+ for(const [i,b] of [...list.querySelectorAll('button[data-index]')].entries()){b.classList.toggle('active',i===current);b.setAttribute('aria-current',i===current?'true':'false');b.querySelector('.track-indicator').innerHTML=i===current&&!audio.paused?'<i class="fa-solid fa-volume-high" aria-hidden="true"></i>':'<i class="fa-solid fa-play" aria-hidden="true"></i>'}
 }
 function choose(i){if(!tracks.length)return;persist(true);current=(i+tracks.length)%tracks.length;audio.src=tracks[current].file;audio.play().catch(()=>{status.textContent='No se pudo reproducir la canción';sync()});sync()}
 function renderList(){
