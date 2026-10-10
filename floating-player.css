@@ -173,3 +173,8 @@ body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:100px}
  #urbanTracklistToggle span{font-size:10px!important}
  .urban-mini-status{max-width:calc(100vw - 150px)}
 }
+
+/* Keep the persistent player above page content and the mobile tab bar. */
+.urban-mini{z-index:95!important;background:#111113!important;box-shadow:0 16px 48px #000e!important;}
+.urban-mini-open{position:relative;z-index:111}
+@media(max-width:700px){.urban-mini{bottom:calc(76px + env(safe-area-inset-bottom));max-height:calc(100dvh - 160px - env(safe-area-inset-top));overflow:auto;}.urban-mini[hidden]{display:none!important}}
