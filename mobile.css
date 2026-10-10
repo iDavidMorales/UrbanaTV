@@ -26,3 +26,26 @@ main{display:block;min-height:50dvh;overflow:clip}
 .bottom-nav .nav-ico{font-size:22px;line-height:1.05}
 .modal{align-items:flex-end;padding:0;z-index:100}.dialog{width:100%;max-height:94dvh;border-radius:18px 18px 0 0;border-left:0;border-right:0;border-bottom:0}.dialog-head{padding:13px 17px}.dialog-head h2{font-size:23px}.player-details{padding:14px 17px}.social{padding:0 17px 22px}.form-body{padding:10px 17px 24px}
 }
+
+/* Scaled app typography across device sizes */
+:root{--body-font:clamp(12px,.86vw + 10px,15px)}
+body{font-size:var(--body-font)}
+.hero h1{font-size:clamp(52px,8vw,104px);line-height:.9}
+.heading h2{font-size:clamp(30px,3.9vw,49px)}
+.manifesto h2{font-size:clamp(40px,6vw,78px)}
+.video-meta h3,.catalog .featured .video-meta h3{font-size:clamp(19px,2vw,27px)}
+.section{padding-top:clamp(28px,4.2vw,58px)}
+@media(max-width:700px){
+.hero{min-height:clamp(365px,57dvh,510px)}
+.hero-content{padding-top:110px;padding-bottom:25px}
+.hero h1{font-size:clamp(46px,11.7vw,70px);line-height:.92;letter-spacing:-1px}
+.hero p{font-size:clamp(11px,3vw,13px);line-height:1.55}
+.hero-buttons button{font-size:10px;padding:10px 12px}
+.heading h2{font-size:clamp(29px,7.2vw,40px)}
+.manifesto h2{font-size:clamp(36px,10vw,55px)}
+.video-meta h3,.catalog .featured .video-meta h3{font-size:clamp(17px,5.3vw,22px)}
+.catalog>.video-card{flex-basis:min(74vw,300px)}
+.section{padding-top:25px}
+.brand{font-size:24px}
+}
+@media(max-width:370px){.hero h1{font-size:43px}.hero-buttons{flex-wrap:wrap}.top-inner{gap:5px}#musicBtn{font-size:10px;padding:9px 8px}#authBtn{max-width:99px}}
