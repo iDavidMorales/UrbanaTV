@@ -10,7 +10,7 @@
     },
     {
       "source": "/noticias/:slug",
-      "destination": "/index.html"
+      "destination": "/api/articles?render=1&slug=:slug"
     },
     {
       "source": "/videos/:slug",
