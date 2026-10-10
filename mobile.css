@@ -123,3 +123,7 @@ body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:calc(105px + env(safe-ar
  body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:calc(205px + env(safe-area-inset-bottom))}
 }
 @media(prefers-reduced-motion:reduce){.urban-mini{animation:none!important}}
+
+/* Icon-only bottom navigation */
+@media(max-width:700px){.bottom-nav button{gap:0;font-size:0}.bottom-nav button i{font-size:21px;line-height:1}.bottom-nav button.active i{filter:drop-shadow(0 0 7px #d5ff3650)}}
+@media(max-width:370px){.bottom-nav button i{font-size:19px}}
