@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#09090a"><meta name="description" content="Información de canciones y artistas en UrbanaTV Music">
+<title>Información de canción | UrbanaTV</title>
+<style>
+:root{color-scheme:dark;--bg:#09090a;--panel:#171719;--line:#343437;--accent:#d5ff36;--muted:#a4a4a8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#292d17 0,transparent 50%),var(--bg);color:#f8f8f8;font:15px system-ui,-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;padding-bottom:40px}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer;touch-action:manipulation}.wrap{width:min(100% - 32px,980px);margin:auto}.top{height:70px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #29292c}.logo{font-size:24px;font-weight:950;letter-spacing:-1.2px}.logo span{color:var(--accent)}.back{border:1px solid #414145;border-radius:10px;padding:10px 13px;color:#ddd;font-size:12px}.eyebrow{color:var(--accent);font-size:11px;font-weight:850;letter-spacing:2px}.hero{padding:36px 0 25px}.hero-grid{display:grid;grid-template-columns:minmax(220px,360px) minmax(0,1fr);gap:clamp(24px,5vw,56px);align-items:center}.cover{width:100%;aspect-ratio:1;object-fit:cover;border-radius:22px;border:1px solid #38383b;background:#202023;box-shadow:0 25px 80px #0008}.placeholder{display:grid;place-items:center;font-size:110px;color:var(--accent)}h1{font-size:clamp(32px,5.5vw,62px);letter-spacing:-2px;line-height:1.02;margin:13px 0 9px;overflow-wrap:anywhere}.artist{font-size:clamp(17px,2vw,23px);font-weight:700;color:#ddd}.description{white-space:pre-wrap;color:#b6b6bb;line-height:1.8;margin:22px 0 25px;overflow-wrap:anywhere}.actions{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #414145;border-radius:11px;padding:12px 16px;background:#202023;color:#fff;font-weight:750}.btn.primary{background:var(--accent);border-color:var(--accent);color:#090909}.meta{margin-top:30px;border-top:1px solid #303034;padding-top:20px;color:var(--muted);font-size:12px}.playerbox{margin:26px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}.playerbox h2{font-size:15px;margin:0 0 14px}.audio{width:100%;accent-color:var(--accent)}.share{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.share .btn{font-size:12px;padding:10px 13px}.status{color:var(--muted);font-size:12px;line-height:1.6;margin-top:18px}.error{border:1px solid #5b4141;border-radius:12px;padding:20px;color:#f3b8b8;line-height:1.6}@media(max-width:650px){.top{height:62px}.hero{padding-top:24px}.hero-grid{grid-template-columns:1fr;gap:24px}.cover{width:min(78vw,330px);margin:auto;display:block;border-radius:17px}.placeholder{margin:auto}.hero-copy{text-align:left}h1{font-size:clamp(34px,10vw,48px)}.description{margin:17px 0 21px}.playerbox{padding:15px}.back{padding:9px 10px}.logo{font-size:22px}}
+</style>
+</head>
+<body><header><div class="wrap top"><a class="logo" href="/">URBANA<span>TV.</span></a><a class="back" href="/musica">← Volver a música</a></div></header>
+<main class="wrap" id="main"><section class="hero"><div class="eyebrow">URBANA RADIO · FICHA MUSICAL</div><p class="status">Cargando información de la canción…</p></section></main>
+<script>
+const main=document.getElementById('main');
+const params=new URLSearchParams(location.search);
+const file=params.get('track');
+const safeFile=p=>typeof p==='string'&&(p.startsWith('/mp3/')||(p.startsWith('https://')&&p.includes('.public.blob.vercel-storage.com/')));
+const esc=s=>String(s||'');
+const fmt=s=>Number.isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
+function showError(message){main.innerHTML='<section class="hero"><div class="error"></div><p><a class="btn" href="/musica">← Regresar al catálogo</a></p></section>';main.querySelector('.error').textContent=message}
+function shareLinks(track){const u=new URL(location.href);u.searchParams.set('track',track.file);if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));const url=encodeURIComponent(u.href),label=encodeURIComponent(track.title+' — '+track.artist+' | UrbanaTV Music');document.getElementById('wa').href='https://api.whatsapp.com/send?text='+label+'%20'+url;document.getElementById('fb').href='https://www.facebook.com/sharer/sharer.php?u='+url;document.getElementById('x').href='https://twitter.com/intent/tweet?text='+label+'&url='+url;document.getElementById('tg').href='https://t.me/share/url?url='+url+'&text='+label}
+let audio;
+fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('No se pudo consultar el catálogo.');return r.json()}).then(data=>{
+ const tracks=Array.isArray(data.tracks)?data.tracks:[];
+ const track=tracks.find(t=>safeFile(t.file)&&t.file===file);
+ if(!track)throw Error('No encontramos esta canción. Puede haber sido retirada o el enlace no es válido.');
+ document.title=track.title+' — '+track.artist+' | UrbanaTV Music';
+ document.querySelector('meta[name="description"]').content=(track.description||('Escucha '+track.title+' de '+track.artist+' en UrbanaTV Music.')).slice(0,155);
+ const hero=document.createElement('section');hero.className='hero';
+ const grid=document.createElement('div');grid.className='hero-grid';
+ let cover;if(track.cover&&safeFile(track.cover)){cover=document.createElement('img');cover.className='cover';cover.src=track.cover;cover.alt='Portada de '+track.title}else{cover=document.createElement('div');cover.className='cover placeholder';cover.textContent='♫'}
+ const copy=document.createElement('div');copy.className='hero-copy';
+ const eyebrow=document.createElement('div');eyebrow.className='eyebrow';eyebrow.textContent='URBANA RADIO · CANCIÓN';
+ const title=document.createElement('h1');title.textContent=track.title;
+ const artist=document.createElement('div');artist.className='artist';artist.textContent=track.artist;
+ const desc=document.createElement('p');desc.className='description';desc.textContent=track.description||'Esta canción forma parte de UrbanaTV Music. Dale play para escucharla y comparte su ficha con tus amigos.';
+ const actions=document.createElement('div');actions.className='actions';
+ const play=document.createElement('button');play.className='btn primary';play.id='play';play.textContent='▶ Reproducir canción';
+ const copyBtn=document.createElement('button');copyBtn.className='btn';copyBtn.id='copy';copyBtn.textContent='Copiar enlace';
+ actions.append(play,copyBtn);copy.append(eyebrow,title,artist,desc,actions);
+ grid.append(cover,copy);hero.append(grid);
+ const player=document.createElement('section');player.className='playerbox';player.innerHTML='<h2>Escuchar canción</h2><audio class="audio" id="trackAudio" controls preload="metadata"></audio><div class="share"><a class="btn" id="wa" target="_blank" rel="noopener noreferrer">WhatsApp</a><a class="btn" id="fb" target="_blank" rel="noopener noreferrer">Facebook</a><a class="btn" id="x" target="_blank" rel="noopener noreferrer">X</a><a class="btn" id="tg" target="_blank" rel="noopener noreferrer">Telegram</a></div><p class="status" id="trackStatus">Comparte esta ficha para que otros puedan conocer la canción, al artista y escucharla.</p>';
+ const meta=document.createElement('div');meta.className='meta';meta.textContent='UrbanaTV Music · Música para descubrir y compartir';
+ main.replaceChildren(hero,player,meta);
+ audio=document.getElementById('trackAudio');audio.src=track.file;
+ const t=Math.max(0,Number(params.get('t')||0));
+ if(t)audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(t,Math.max(0,(audio.duration||t)-1))},{once:true});
+ function sync(){const u=new URL(location.href);u.searchParams.set('track',track.file);if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));else u.searchParams.delete('t');history.replaceState({...history.state,urbanTrack:track.file},'',u.pathname+u.search+u.hash);shareLinks(track)}
+ audio.addEventListener('timeupdate',sync);audio.addEventListener('seeked',sync);audio.addEventListener('play',sync);shareLinks(track);
+ play.addEventListener('click',()=>{audio.play().then(()=>{play.textContent='♫ Reproduciendo'}).catch(()=>document.getElementById('trackStatus').textContent='Tu navegador no pudo iniciar el audio. Usa el control de reproducción para intentarlo de nuevo.')});
+ audio.addEventListener('pause',()=>play.textContent='▶ Reproducir canción');audio.addEventListener('play',()=>play.textContent='Ⅱ Reproduciendo');
+ copyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);copyBtn.textContent='✓ Enlace copiado'}catch{copyBtn.textContent='Copia la URL desde la barra del navegador'}});
+}).catch(e=>showError(e.message||'No se pudo cargar la información de la canción.'));
+</script></body></html>
