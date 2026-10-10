@@ -182,3 +182,7 @@ body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:100px}
 
 /* UX polish: track identity, focus, compact screens, and safe-area aware dock */
 .urban-mini-status{overflow-wrap:anywhere}.urban-mini [aria-current="true"]{outline:1px solid #d5ff3670;outline-offset:-1px}.urban-mini button:focus-visible,.urban-mini a:focus-visible{outline:2px solid #d5ff36;outline-offset:3px}.urban-mini[data-playing="true"] .urban-mini-cover{animation:urbanPulse 2.2s ease-in-out infinite}@media(max-width:700px){.urban-mini{padding-bottom:max(7px,env(safe-area-inset-bottom));overscroll-behavior:contain}.urban-tracklist{scrollbar-gutter:stable}.urban-mini-status{white-space:normal;line-height:1.35}}@media(prefers-reduced-motion:reduce){.urban-mini[data-playing="true"] .urban-mini-cover{animation:none!important}}
+
+
+/* Navigation loading and touch polish */
+#urbanRouteMount[aria-busy="true"]::before{content:'Cargando sección…';position:absolute;z-index:2;top:14px;left:50%;transform:translateX(-50%);padding:8px 13px;border:1px solid #424247;border-radius:999px;background:#171719;color:#d5ff36;font:700 11px/1.3 system-ui,sans-serif;box-shadow:0 5px 22px #0008}#urbanRouteMount iframe{background:#09090a}html{scrollbar-gutter:stable}button,a{ -webkit-tap-highlight-color:transparent}::selection{background:#d5ff36;color:#111}@media(max-width:700px){#urbanRouteMount[aria-busy="true"]::before{top:8px}.urban-mini button,.urban-mini a{touch-action:manipulation}}
