@@ -31,12 +31,12 @@ async function renderArticle(req,res,slug){
  const page=await fetch('https://urbanatv.vercel.app/index.html',{headers:{'accept':'text/html'},signal:AbortSignal.timeout(9000)});
  if(!page.ok)throw Error('No se pudo cargar la portada');
  let html=await page.text();
- html=html.replace(/<title>[^<]*<\\/title>/,'<title>'+escapeHtml(a.title)+' | UrbanaTV</title>');
- html=html.replace(/<meta\\s+name=["']description["'][^>]*>/i,'<meta name="description" content="'+escapeHtml(a.description)+'">');
+ html=html.replace(/<title>[^<]*<\/title>/,'<title>'+escapeHtml(a.title)+' | UrbanaTV</title>');
+ html=html.replace(/<meta\s+name=["']description["'][^>]*>/i,'<meta name="description" content="'+escapeHtml(a.description)+'">');
  // La portada trae una imagen OG genérica. Si se conserva, algunas redes eligen esa
  // primera imagen y muestran la misma foto para todas las noticias.
- html=html.replace(/<meta\\s+(?:property|name)=["'](?:og:[^"']+|twitter:[^"']+|article:published_time)["'][^>]*>/gi,'');
- html=html.replace(/<link\\s+rel=["']canonical["'][^>]*>/gi,'');
+ html=html.replace(/<meta\s+(?:property|name)=["'](?:og:[^"']+|twitter:[^"']+|article:published_time)["'][^>]*>/gi,'');
+ html=html.replace(/<link\s+rel=["']canonical["'][^>]*>/gi,'');
  html=html.replace('</head>',meta+'</head>');
  res.setHeader('Content-Type','text/html; charset=utf-8');
  res.setHeader('Cache-Control','public, s-maxage=300, stale-while-revalidate=600');
