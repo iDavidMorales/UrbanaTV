@@ -27,12 +27,12 @@ function renderList(){
  sync()
 }
 function show(){panel.hidden=false;open.setAttribute('aria-expanded','true');sync()}
-function hide(){panel.hidden=true;open.setAttribute('aria-expanded','false');audio.pause();persist(true)}
+function hide(){panel.hidden=true;open.setAttribute('aria-expanded','false');persist(true)}
 window.addEventListener('message',event=>{if(event.origin!==location.origin||!event.data||event.data.type!=='urbana-play-track')return;const frame=document.querySelector('#urbanRouteMount iframe');if(!frame||event.source!==frame.contentWindow)return;const i=tracks.findIndex(t=>t.file===event.data.file);if(i>=0){show();choose(i)}});
 open.addEventListener('click',()=>{panel.hidden?show():hide()});
 $('urbanMiniClose').addEventListener('click',hide);
-listToggle.addEventListener('click',()=>{list.hidden=!list.hidden;listToggle.setAttribute('aria-expanded',String(!list.hidden));listToggle.textContent=list.hidden?'☷ Lista de canciones':'☷ Ocultar canciones'});
-toggle.addEventListener('click',()=>{if(current<0){choose(0);return}if(audio.paused)audio.play().catch(()=>{status.textContent='No se pudo reproducir'});else audio.pause()});
+listToggle.addEventListener('click',()=>{const isOpen=list.hidden;list.hidden=!isOpen;listToggle.setAttribute('aria-expanded',String(isOpen));listToggle.setAttribute('aria-label',isOpen?'Ocultar lista de canciones':'Mostrar lista de canciones');listToggle.title=isOpen?'Ocultar canciones':'Mostrar lista de canciones';listToggle.innerHTML=isOpen?'<i class="fa-solid fa-list" aria-hidden="true"></i><span>Ocultar lista</span>':'<i class="fa-solid fa-list" aria-hidden="true"></i><span>Lista de canciones</span>';if(isOpen)list.scrollIntoView({block:'nearest',behavior:'smooth'});});
+toggle.addEventListener('click',async()=>{if(!tracks.length){status.textContent='No hay canciones disponibles para reproducir';return}if(current<0){choose(0);return}if(audio.paused){status.textContent='Iniciando reproducción…';try{await audio.play();status.textContent='Reproduciendo ahora'}catch(e){status.textContent='El navegador bloqueó la reproducción. Pulsa ▶ otra vez o elige una canción de la lista.'}sync()}else{audio.pause();status.textContent='Reproducción pausada';sync()}});
 $('urbanMiniPrev').addEventListener('click',()=>choose(current-1));
 $('urbanMiniNext').addEventListener('click',()=>choose(current+1));
 audio.addEventListener('ended',()=>choose(current+1));window.addEventListener('urban-video-start',()=>{if(!audio.paused){audio.pause();status.textContent='Música pausada mientras ves el video';persist(true)}});
