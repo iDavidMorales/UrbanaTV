@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/musica",
+      "destination": "/musica.html"
+    },
+    {
+      "source": "/noticias",
+      "destination": "/noticias.html"
+    },
+    {
+      "source": "/noticias/:slug",
+      "destination": "/noticias.html"
+    },
+    {
+      "source": "/videos/:slug",
+      "destination": "/index.html"
+    }
+  ]
+}
