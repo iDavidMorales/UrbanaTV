@@ -29,7 +29,7 @@ async function enableNotifications(){
  button.disabled=true;
  try{
   const permission=Notification.permission==='default'?await Notification.requestPermission():Notification.permission;
-  if(permission!=='granted'){if(status())status().textContent=permission==='denied'?'Las notificaciones están bloqueadas en el navegador. Actívalas desde los ajustes del sitio.':'No se activaron los avisos.';return}
+  if(permission!=='granted'){if(status())status().textContent=permission==='denied'?'Las notificaciones están bloqueadas en el navegador. Actívalas desde los ajustes del sitio.':'No se activaron los avisos.';button.disabled=false;return}
   swReg=await navigator.serviceWorker.register('/service-worker.js');
   await navigator.serviceWorker.ready;
   if(status())status().textContent='¡Listo! Recibirás avisos de novedades mientras UrbanaTV esté abierto. Para avisos con el navegador cerrado falta conectar el envío push del servidor.';
