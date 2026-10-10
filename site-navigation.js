@@ -8,11 +8,12 @@ function playbackSearch(targetSearch=''){
  const current=new URLSearchParams(location.search);
  const params=new URLSearchParams();
  let saved=null;try{saved=JSON.parse(localStorage.getItem('urbanatv:last-track:v1')||'null')}catch{}
- // Preserve playback from the target URL first, then the current URL, and finally
- // the mini-player's persisted state (useful when a news slug is opened without a query).
+ // La ruta destino manda; después la URL actual y, al final, el estado guardado del mini reproductor.
  const track=incoming.get('track')||current.get('track')||(saved&&typeof saved.file==='string'?saved.file:'');
+ const trackId=incoming.get('trackId')||current.get('trackId')||track;
  const time=incoming.get('t')||current.get('t')||(saved&&Number.isFinite(Number(saved.time))&&Number(saved.time)>0?String(Math.floor(Number(saved.time))):'');
  if(track)params.set('track',track);
+ if(trackId)params.set('trackId',trackId);
  if(time)params.set('t',time);
  const query=params.toString();return query?'?'+query:'';
 }
@@ -25,7 +26,7 @@ function show(path,push=false,hash='',search=''){
  document.title=active?(path==='/musica'?'Música | UrbanaTV':'Notas de la calle | UrbanaTV'):'UrbanaTV — La calle tiene voz';
 }
 window.urbanaNavigate=show;
-window.addEventListener('message',event=>{if(event.origin!==location.origin||event.data?.type!=='urbana-route')return;if(event.source!==frame.contentWindow)return;const path=String(event.data.path||'');if(routes(path))show(path,true)});
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.data?.type!=='urbana-route')return;if(event.source!==frame.contentWindow)return;const path=String(event.data.path||'');if(routes(path))show(path,true,String(event.data.hash||''),String(event.data.search||''))});
 document.addEventListener('click',e=>{
  const a=e.target.closest('a[href]');if(!a||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||a.target==='_blank'||a.hasAttribute('download'))return;
  const url=new URL(a.href);if(url.origin!==location.origin)return;
