@@ -35,7 +35,7 @@ listToggle.addEventListener('click',()=>{list.hidden=!list.hidden;listToggle.set
 toggle.addEventListener('click',()=>{if(current<0){choose(0);return}if(audio.paused)audio.play().catch(()=>{status.textContent='No se pudo reproducir'});else audio.pause()});
 $('urbanMiniPrev').addEventListener('click',()=>choose(current-1));
 $('urbanMiniNext').addEventListener('click',()=>choose(current+1));
-audio.addEventListener('ended',()=>choose(current+1));
+audio.addEventListener('ended',()=>choose(current+1));window.addEventListener('urban-video-start',()=>{if(!audio.paused){audio.pause();status.textContent='Música pausada mientras ves el video';persist(true)}});
 audio.addEventListener('play',()=>{sync();persist(true)});audio.addEventListener('pause',()=>{sync();persist(true)});audio.addEventListener('seeked',()=>persist(true));window.addEventListener('pagehide',()=>persist(true));document.addEventListener('visibilitychange',()=>{if(document.hidden)persist(true)});
 audio.addEventListener('timeupdate',()=>{seek.value=audio.duration&&Number.isFinite(audio.duration)?String(100*audio.currentTime/audio.duration):'0';persist()});
 seek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=audio.duration*Number(seek.value)/100});
