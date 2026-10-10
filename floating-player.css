@@ -20,3 +20,6 @@ body.urban-route-active{overflow:hidden}
 body.urban-route-active #urbanMiniPlayer{z-index:40}
 body.urban-route-active .top{z-index:50}
 @media(max-width:700px){#urbanRouteMount{top:calc(56px + env(safe-area-inset-top));bottom:calc(58px + env(safe-area-inset-bottom))}}
+
+/* Urban visual system: vinyl, street lines, subtle motion */
+.hero,.manifesto{position:relative}.hero::after{content:"";position:absolute;inset:auto 0 0;height:130px;background:url('/assets/urban-skyline.svg') center bottom/cover no-repeat;pointer-events:none;opacity:.8}.top{z-index:70!important}.top a,.top button{cursor:pointer}.top .nav a{position:relative;transition:color .2s ease}.top .nav a:hover,.top .nav a:focus-visible{color:#d5ff36}.top .nav a::after{content:"";position:absolute;bottom:-8px;left:0;right:100%;height:2px;background:#d5ff36;transition:right .25s}.top .nav a:hover::after{right:0}.urban-mini-cover{border:1px solid #d5ff3699;border-radius:50%;box-shadow:inset 0 0 0 8px #111,0 0 13px #d5ff3638}.urban-mini-cover::first-letter{color:#d5ff36}.urban-mini{background:#101013f5;backdrop-filter:blur(20px)}.urban-mini button:focus-visible,.top a:focus-visible{outline:2px solid #d5ff36;outline-offset:3px}@media(prefers-reduced-motion:reduce){.top .nav a,.top .nav a::after{transition:none!important}}
