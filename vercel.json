@@ -2,15 +2,15 @@
   "rewrites": [
     {
       "source": "/musica",
-      "destination": "/musica.html"
+      "destination": "/index.html"
     },
     {
       "source": "/noticias",
-      "destination": "/noticias.html"
+      "destination": "/index.html"
     },
     {
       "source": "/noticias/:slug",
-      "destination": "/noticias.html"
+      "destination": "/index.html"
     },
     {
       "source": "/videos/:slug",
