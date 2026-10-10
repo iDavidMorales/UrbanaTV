@@ -12,6 +12,7 @@ function show(path,push=false,hash=''){
  document.title=active?(path==='/musica'?'Música | UrbanaTV':'Notas de la calle | UrbanaTV'):'UrbanaTV — La calle tiene voz';
 }
 window.urbanaNavigate=show;
+window.addEventListener('message',event=>{if(event.origin!==location.origin||event.data?.type!=='urbana-route')return;if(event.source!==frame.contentWindow)return;const path=String(event.data.path||'');if(routes(path))show(path,true)});
 document.addEventListener('click',e=>{
  const a=e.target.closest('a[href]');if(!a||e.defaultPrevented||e.button!==0||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||a.target==='_blank'||a.hasAttribute('download'))return;
  const url=new URL(a.href);if(url.origin!==location.origin)return;
