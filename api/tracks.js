@@ -1,0 +1,2 @@
+import {neon} from '@neondatabase/serverless';
+export default async function handler(req,res){if(req.method!=='GET')return res.status(405).json({error:'Método no permitido'});if(!process.env.DATABASE_URL)return res.status(503).json({error:'Base de datos no configurada'});try{const sql=neon(process.env.DATABASE_URL);const rows=await sql`SELECT title,artist,description,audio_url AS file,cover_url AS cover FROM urbana_tv.tracks ORDER BY created_at DESC LIMIT 200`;res.status(200).json({tracks:rows})}catch(e){res.status(500).json({error:'No se pudieron cargar las canciones'})}}
