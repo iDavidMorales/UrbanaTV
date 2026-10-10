@@ -49,6 +49,29 @@ function renderList(){
 function show(){panel.hidden=false;open.setAttribute('aria-expanded','true');sync()}
 function hide(){panel.hidden=true;open.setAttribute('aria-expanded','false');persist(true)}
 window.addEventListener('message',event=>{if(event.origin!==location.origin||!event.data||event.data.type!=='urbana-play-track')return;const frame=document.querySelector('#urbanRouteMount iframe');if(!frame||event.source!==frame.contentWindow)return;const i=tracks.findIndex(t=>t.file===event.data.file);if(i>=0){show();choose(i)}});
+
+// Atajos de teclado accesibles: espacio reproducir/pausar, flechas buscar y Shift+flechas cambiar canción.
+document.addEventListener('keydown',event=>{
+ if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey)return;
+ const target=event.target,tag=target&&target.tagName?target.tagName.toLowerCase():'';
+ if(['input','textarea','select'].includes(tag)||target?.isContentEditable)return;
+ if(event.code==='Space'&&current>=0){event.preventDefault();toggle.click();return}
+ if(event.key==='ArrowLeft'&&current>=0&&!event.shiftKey){event.preventDefault();audio.currentTime=Math.max(0,audio.currentTime-10);persist(true);syncUrl(true);return}
+ if(event.key==='ArrowRight'&&current>=0&&!event.shiftKey){event.preventDefault();audio.currentTime=Math.min(audio.duration||Infinity,audio.currentTime+10);persist(true);syncUrl(true);return}
+ if(event.shiftKey&&event.key==='ArrowLeft'&&tracks.length){event.preventDefault();choose(current-1);return}
+ if(event.shiftKey&&event.key==='ArrowRight'&&tracks.length){event.preventDefault();choose(current+1)}
+});
+// Volver/avanzar restaura la canción y el segundo indicados en la URL sin perder el estado del mini reproductor.
+window.addEventListener('popstate',()=>{
+ const params=new URLSearchParams(location.search),file=params.get('track'),id=params.get('trackId');
+ if(!file&&!id)return;
+ const idx=tracks.findIndex(t=>(file&&t.file===file)||(id&&stableTrackId(t)===id));
+ if(idx<0)return;
+ const time=Math.max(0,Number(params.get('t')||0));
+ if(idx!==current){const resumePlayback=!audio.paused;choose(idx,{time,autoplay:resumePlayback})}
+ else if(Number.isFinite(time)&&time>=0&&audio.readyState>=1){audio.currentTime=Math.min(time,Number.isFinite(audio.duration)?Math.max(0,audio.duration-1):time);persist(true)}
+});
+
 open.addEventListener('click',()=>{panel.hidden?show():hide()});
 $('urbanMiniClose').addEventListener('click',hide);
 listToggle.addEventListener('click',()=>{const isOpen=list.hidden;list.hidden=!isOpen;listToggle.setAttribute('aria-expanded',String(isOpen));listToggle.setAttribute('aria-label',isOpen?'Ocultar lista de canciones':'Mostrar lista de canciones');listToggle.title=isOpen?'Ocultar canciones':'Mostrar lista de canciones';listToggle.innerHTML=isOpen?'<i class="fa-solid fa-list" aria-hidden="true"></i><span>Ocultar lista</span>':'<i class="fa-solid fa-list" aria-hidden="true"></i><span>Lista de canciones</span>';if(isOpen)list.scrollIntoView({block:'nearest',behavior:'smooth'});});
