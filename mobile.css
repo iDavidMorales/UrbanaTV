@@ -49,3 +49,6 @@ body{font-size:var(--body-font)}
 .brand{font-size:24px}
 }
 @media(max-width:370px){.hero h1{font-size:43px}.hero-buttons{flex-wrap:wrap}.top-inner{gap:5px}#musicBtn{font-size:10px;padding:9px 8px}#authBtn{max-width:99px}}
+
+/* viewport móvil UrbanaTV */
+html{width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:76px}body{width:100%;min-width:0;overflow-x:clip}img,video,iframe{max-width:100%}button,a{ -webkit-tap-highlight-color:transparent}@media(max-width:640px){.shell{max-width:100%;box-sizing:border-box}.home-news-grid,.news-preview{grid-template-columns:minmax(0,1fr)}.section-head,.heading{flex-wrap:wrap}.modal{padding:10px}.dialog{max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain}.bottom-nav{padding-bottom:env(safe-area-inset-bottom)}}
