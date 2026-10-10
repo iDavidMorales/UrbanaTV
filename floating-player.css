@@ -43,3 +43,31 @@ body.urban-route-active .top{z-index:50}
 .video-card,.catalog .video-card,.pill,.iconbtn,.bottom-nav button{transition:transform .22s cubic-bezier(.2,.8,.2,1),background .22s ease,border-color .22s ease,box-shadow .22s ease}
 .video-card:hover{transform:translateY(-4px)}.pill:active,.iconbtn:active,.bottom-nav button:active{transform:scale(.95)}.bottom-nav{backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
 @media(prefers-reduced-motion:reduce){.urban-notification-panel{animation:none!important}.video-card,.catalog .video-card,.pill,.iconbtn,.bottom-nav button{transition:none!important}}
+
+/* Full-width audio footer dock; on phones it sits directly above the bottom tab bar */
+.urban-mini[hidden]{display:none!important}
+.urban-mini{left:0;right:0;bottom:0;width:100%;max-width:none;border-radius:16px 16px 0 0;border:1px solid #d5ff36;border-bottom:0;padding:10px clamp(14px,3vw,34px);z-index:75;display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(100px,1.1fr) auto;align-items:center;gap:14px;max-height:45dvh;overflow-y:auto}
+.urban-mini-head{min-width:0;justify-content:flex-start}
+.urban-mini-controls{margin:0;gap:10px}
+.urban-mini input[type=range]{min-width:70px}
+.urban-mini-status{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#urbanTracklistToggle{margin:0!important;justify-self:end}
+.urban-mini>a[href="/musica"]{margin:0!important}
+.urban-tracklist{grid-column:1/-1;width:100%;max-height:25dvh}
+@media(max-width:700px){
+ .urban-mini{left:0;right:0;bottom:calc(66px + env(safe-area-inset-bottom));width:100%;padding:9px 12px 7px;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;border-radius:13px 13px 0 0;max-height:calc(100dvh - 135px);z-index:85}
+ .urban-mini-head{grid-column:1;grid-row:1;gap:8px}
+ .urban-mini-cover{width:34px;height:34px;flex:0 0 34px}
+ .urban-mini-info strong{font-size:11px}
+ .urban-mini-info small{font-size:10px}
+ .urban-mini-head>button{width:29px;height:29px;flex:0 0 29px}
+ .urban-mini-controls{grid-column:2;grid-row:1;gap:5px}
+ .urban-mini-controls button{width:30px;height:30px}
+ .urban-mini-controls button.mini-primary{width:36px;height:36px}
+ .urban-mini input[type=range]{grid-column:1/-1;grid-row:2;width:100%;margin:0;height:15px}
+ .urban-mini-status{grid-column:1;grid-row:3;font-size:9px;max-width:100%}
+ #urbanTracklistToggle{grid-column:2;grid-row:3;width:34px!important;height:30px;padding:0!important;justify-self:end}
+ .urban-mini>a[href="/musica"]{grid-column:2;grid-row:3;display:none!important}
+ .urban-tracklist{grid-column:1/-1;max-height:24dvh;margin-top:5px}
+}
+@media(prefers-reduced-motion:reduce){.urban-mini{animation:none!important}}
