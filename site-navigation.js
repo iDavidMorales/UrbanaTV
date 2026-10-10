@@ -7,7 +7,13 @@ function playbackSearch(targetSearch=''){
  const incoming=new URLSearchParams(targetSearch||'');
  const current=new URLSearchParams(location.search);
  const params=new URLSearchParams();
- for(const key of ['track','t']){const value=incoming.get(key)||current.get(key);if(value)params.set(key,value)}
+ let saved=null;try{saved=JSON.parse(localStorage.getItem('urbanatv:last-track:v1')||'null')}catch{}
+ // Preserve playback from the target URL first, then the current URL, and finally
+ // the mini-player's persisted state (useful when a news slug is opened without a query).
+ const track=incoming.get('track')||current.get('track')||(saved&&typeof saved.file==='string'?saved.file:'');
+ const time=incoming.get('t')||current.get('t')||(saved&&Number.isFinite(Number(saved.time))&&Number(saved.time)>0?String(Math.floor(Number(saved.time))):'');
+ if(track)params.set('track',track);
+ if(time)params.set('t',time);
  const query=params.toString();return query?'?'+query:'';
 }
 function show(path,push=false,hash='',search=''){
