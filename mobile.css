@@ -52,3 +52,74 @@ body{font-size:var(--body-font)}
 
 /* viewport móvil UrbanaTV */
 html{width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-padding-top:76px}body{width:100%;min-width:0;overflow-x:clip}img,video,iframe{max-width:100%}button,a{ -webkit-tap-highlight-color:transparent}@media(max-width:640px){.shell{max-width:100%;box-sizing:border-box}.home-news-grid,.news-preview{grid-template-columns:minmax(0,1fr)}.section-head,.heading{flex-wrap:wrap}.modal{padding:10px}.dialog{max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain}.bottom-nav{padding-bottom:env(safe-area-inset-bottom)}}
+
+
+/* UrbanaTV responsive header + icon-first navigation */
+.top-inner{gap:clamp(10px,1.8vw,26px);min-width:0}
+.brand{gap:9px;flex:0 0 auto;min-width:0}
+.brand-word{display:block;min-width:0;line-height:.83}
+.brand-word>span{color:var(--accent)}
+.brand-word small{display:block}
+.brand-icon{width:clamp(32px,3.2vw,42px);height:clamp(32px,3.2vw,42px);object-fit:cover;flex:0 0 auto}
+.top .nav{gap:clamp(10px,1.35vw,22px);margin-left:clamp(0px,1vw,14px);min-width:0}
+.top .nav a{font-size:clamp(10px,.82vw,12px);letter-spacing:.06em;white-space:nowrap}
+.top .actions{gap:clamp(5px,.65vw,10px);flex:0 0 auto}
+.top .actions .iconbtn,.top .actions .pill,.top .actions .urban-mini-open{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:42px;height:42px;min-width:42px;padding:0;border-radius:12px;font-size:16px;line-height:1}
+.top .actions .pill{width:46px;min-width:46px}
+.top .actions .pill i+i{font-size:13px;margin-left:-3px}
+.top .actions .urban-mini-open{border-radius:12px}
+.top .actions #authBtn{font-size:16px}
+.top .actions .urban-bell{font-size:17px!important}
+@media(max-width:1120px){.top .nav{display:none}.top-inner{gap:14px}.top .actions{margin-left:auto}.top .actions .iconbtn,.top .actions .pill,.top .actions .urban-mini-open{width:40px;height:40px;min-width:40px}.top .actions .pill{width:44px;min-width:44px}}
+@media(max-width:700px){
+ .top-inner{height:58px;gap:8px}
+ .brand{gap:7px;min-width:0}
+ .brand-icon{width:32px;height:32px}
+ .brand-word{font-size:23px;letter-spacing:-.8px}
+ .brand-word small{font-size:6px;letter-spacing:2.7px;margin-top:5px;white-space:nowrap}
+ .top .actions{gap:5px}
+ .top .actions .iconbtn,.top .actions .pill,.top .actions .urban-mini-open{width:34px;height:34px;min-width:34px;padding:0;border-radius:10px;font-size:14px}
+ .top .actions .pill{width:37px;min-width:37px}
+ #musicBtn{display:inline-flex!important}
+ #authBtn{display:none!important}
+ .top .actions .urban-bell{min-width:32px!important;width:32px!important}
+ .top .actions #searchToggle{font-size:14px}
+}
+@media(max-width:380px){
+ .top-inner{gap:5px}
+ .brand{gap:5px}
+ .brand-word{font-size:20px}
+ .brand-word small{font-size:5px;letter-spacing:2.2px}
+ .top .actions{gap:3px}
+ .top .actions .iconbtn,.top .actions .pill,.top .actions .urban-mini-open{width:30px;height:32px;min-width:30px;font-size:12px}
+ .top .actions .pill{width:34px;min-width:34px}
+}
+/* Footer-width audio dock: always sits above the fixed mobile tab bar */
+.urban-mini[hidden]{display:none!important}
+.urban-mini{left:0;right:0;bottom:0;width:100%;max-width:none;border-radius:16px 16px 0 0;border:1px solid #d5ff36;border-bottom:0;padding:10px clamp(14px,3vw,34px);z-index:75;display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(100px,1.1fr) auto;align-items:center;gap:14px;max-height:45dvh;overflow-y:auto}
+.urban-mini-head{min-width:0;justify-content:flex-start}
+.urban-mini-controls{margin:0;gap:10px}
+.urban-mini input[type=range]{min-width:70px}
+.urban-mini-status{margin:0;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#urbanTracklistToggle{margin:0!important;justify-self:end}
+.urban-mini>a[href="/musica"]{margin:0!important}
+.urban-tracklist{grid-column:1/-1;width:100%;max-height:25dvh}
+body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:calc(105px + env(safe-area-inset-bottom))}
+@media(max-width:700px){
+ .urban-mini{bottom:calc(66px + env(safe-area-inset-bottom));padding:9px 12px 7px;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;border-radius:13px 13px 0 0;max-height:calc(100dvh - 135px);z-index:85}
+ .urban-mini-head{grid-column:1;grid-row:1;gap:8px}
+ .urban-mini-cover{width:34px;height:34px;flex:0 0 34px}
+ .urban-mini-info strong{font-size:11px}
+ .urban-mini-info small{font-size:10px}
+ .urban-mini-head>button{width:29px;height:29px;flex:0 0 29px}
+ .urban-mini-controls{grid-column:2;grid-row:1;gap:5px}
+ .urban-mini-controls button{width:30px;height:30px}
+ .urban-mini-controls button.mini-primary{width:36px;height:36px}
+ .urban-mini input[type=range]{grid-column:1/-1;grid-row:2;width:100%;margin:0;height:15px}
+ .urban-mini-status{grid-column:1;grid-row:3;font-size:9px;max-width:100%}
+ #urbanTracklistToggle{grid-column:2;grid-row:3;width:34px!important;height:30px;padding:0!important;justify-self:end}
+ .urban-mini>a[href="/musica"]{grid-column:2;grid-row:3;display:none!important}
+ .urban-tracklist{grid-column:1/-1;max-height:24dvh;margin-top:5px}
+ body:has(#urbanMiniPlayer:not([hidden])){padding-bottom:calc(205px + env(safe-area-inset-bottom))}
+}
+@media(prefers-reduced-motion:reduce){.urban-mini{animation:none!important}}
