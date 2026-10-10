@@ -15,15 +15,16 @@
 const main=document.getElementById('main');
 const params=new URLSearchParams(location.search);
 const file=params.get('track');
+const requestedTrackId=params.get('trackId');
 const safeFile=p=>typeof p==='string'&&(p.startsWith('/mp3/')||(p.startsWith('https://')&&p.includes('.public.blob.vercel-storage.com/')));
 const esc=s=>String(s||'');
 const fmt=s=>Number.isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00';
 function showError(message){main.innerHTML='<section class="hero"><div class="error"></div><p><a class="btn" href="/musica">← Regresar al catálogo</a></p></section>';main.querySelector('.error').textContent=message}
-function shareLinks(track){const u=new URL(location.href);u.searchParams.set('track',track.file);if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));const url=encodeURIComponent(u.href),label=encodeURIComponent(track.title+' — '+track.artist+' | UrbanaTV Music');document.getElementById('wa').href='https://api.whatsapp.com/send?text='+label+'%20'+url;document.getElementById('fb').href='https://www.facebook.com/sharer/sharer.php?u='+url;document.getElementById('x').href='https://twitter.com/intent/tweet?text='+label+'&url='+url;document.getElementById('tg').href='https://t.me/share/url?url='+url+'&text='+label}
+function shareLinks(track){const u=new URL(location.href);u.searchParams.set('track',track.file);u.searchParams.set('trackId',String(track.id??track._id??track.slug??track.file));if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));const url=encodeURIComponent(u.href),label=encodeURIComponent(track.title+' — '+track.artist+' | UrbanaTV Music');document.getElementById('wa').href='https://api.whatsapp.com/send?text='+label+'%20'+url;document.getElementById('fb').href='https://www.facebook.com/sharer/sharer.php?u='+url;document.getElementById('x').href='https://twitter.com/intent/tweet?text='+label+'&url='+url;document.getElementById('tg').href='https://t.me/share/url?url='+url+'&text='+label}
 let audio;
 fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('No se pudo consultar el catálogo.');return r.json()}).then(data=>{
  const tracks=Array.isArray(data.tracks)?data.tracks:[];
- const track=tracks.find(t=>safeFile(t.file)&&t.file===file);
+ const track=tracks.find(t=>safeFile(t.file)&&((file&&t.file===file)||(requestedTrackId&&String(t.id??t._id??t.slug??t.file)===requestedTrackId)));
  if(!track)throw Error('No encontramos esta canción. Puede haber sido retirada o el enlace no es válido.');
  document.title=track.title+' — '+track.artist+' | UrbanaTV Music';
  document.querySelector('meta[name="description"]').content=(track.description||('Escucha '+track.title+' de '+track.artist+' en UrbanaTV Music.')).slice(0,155);
@@ -46,7 +47,7 @@ fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('No se pud
  audio=document.getElementById('trackAudio');audio.src=track.file;
  const t=Math.max(0,Number(params.get('t')||0));
  if(t)audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(t,Math.max(0,(audio.duration||t)-1))},{once:true});
- function sync(){const u=new URL(location.href);u.searchParams.set('track',track.file);if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));else u.searchParams.delete('t');history.replaceState({...history.state,urbanTrack:track.file},'',u.pathname+u.search+u.hash);shareLinks(track)}
+ function sync(){const u=new URL(location.href);u.searchParams.set('track',track.file);u.searchParams.set('trackId',String(track.id??track._id??track.slug??track.file));if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));else u.searchParams.delete('t');history.replaceState({...history.state,urbanTrack:track.file},'',u.pathname+u.search+u.hash);shareLinks(track)}
  audio.addEventListener('timeupdate',sync);audio.addEventListener('seeked',sync);audio.addEventListener('play',sync);shareLinks(track);
  play.addEventListener('click',()=>{audio.play().then(()=>{play.textContent='♫ Reproduciendo'}).catch(()=>document.getElementById('trackStatus').textContent='Tu navegador no pudo iniciar el audio. Usa el control de reproducción para intentarlo de nuevo.')});
  audio.addEventListener('pause',()=>play.textContent='▶ Reproducir canción');audio.addEventListener('play',()=>play.textContent='Ⅱ Reproduciendo');
