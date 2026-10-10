@@ -1,29 +1,41 @@
 (()=>{
-const by=id=>document.getElementById(id);
-const panel=by('urbanMiniPlayer'),audio=by('urbanMiniAudio');
+const $=id=>document.getElementById(id);
+const panel=$('urbanMiniPlayer'),audio=$('urbanMiniAudio');
 if(!panel||!audio)return;
+const title=$('urbanMiniTitle'),artist=$('urbanMiniArtist'),toggle=$('urbanMiniToggle'),seek=$('urbanMiniSeek'),status=$('urbanMiniStatus'),list=$('urbanTracklist'),listToggle=$('urbanTracklistToggle'),open=$('urbanMiniOpen');
 let tracks=[],current=-1;
-const full=by('urbanFull'),fullTitle=by('urbanFullTitle'),fullArtist=by('urbanFullArtist'),fullToggle=by('urbanFullToggle'),fullSeek=by('urbanFullSeek');
-const title=by('urbanMiniTitle'),artist=by('urbanMiniArtist'),toggle=by('urbanMiniToggle'),seek=by('urbanMiniSeek'),status=by('urbanMiniStatus');
-function update(){if(fullToggle)fullToggle.textContent=audio.paused?'▶':'Ⅱ';if(fullTitle)fullTitle.textContent=current>=0?tracks[current].title:'UrbanaTV Music';if(fullArtist)fullArtist.textContent=current>=0?tracks[current].artist:'La música no es contenido, es vida';toggle.textContent=audio.paused?'▶':'Ⅱ';toggle.setAttribute('aria-label',audio.paused?'Reproducir':'Pausar');if(current>=0){title.textContent=tracks[current].title;artist.textContent=tracks[current].artist}else{title.textContent='UrbanaTV Music';artist.textContent='La música no es contenido, es vida'}}
-function choose(i){if(!tracks.length)return;current=(i+tracks.length)%tracks.length;audio.src=tracks[current].file;audio.play().catch(()=>{status.textContent='No se pudo reproducir este MP3';update()});update()}
-function show(){panel.hidden=false;by('urbanMiniOpen').setAttribute('aria-expanded','true');update()}
-function hide(){if(full&&!full.hidden){full.hidden=true;document.body.style.overflow=''}panel.hidden=true;by('urbanMiniOpen').setAttribute('aria-expanded','false');audio.pause()}
-by('urbanMiniOpen').addEventListener('click',()=>{show();full.hidden=false;document.body.style.overflow='hidden';update()});
-by('urbanMiniClose').addEventListener('click',hide);
-by('urbanExpand').addEventListener('click',()=>{show();full.hidden=false;document.body.style.overflow='hidden';update()});
-by('urbanCollapse').addEventListener('click',()=>{full.hidden=true;document.body.style.overflow='';show()});
-by('urbanFullToggle').addEventListener('click',()=>toggle.click());
-by('urbanFullPrev').addEventListener('click',()=>by('urbanMiniPrev').click());
-by('urbanFullNext').addEventListener('click',()=>by('urbanMiniNext').click());
-fullSeek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=audio.duration*Number(fullSeek.value)/100});
-toggle.addEventListener('click',()=>{if(current<0){choose(0);return}if(audio.paused)audio.play().catch(()=>status.textContent='No se pudo reproducir');else audio.pause()});
-by('urbanMiniPrev').addEventListener('click',()=>choose(current-1));
-by('urbanMiniNext').addEventListener('click',()=>choose(current+1));
-audio.addEventListener('ended',()=>choose(current+1));
-audio.addEventListener('play',update);audio.addEventListener('pause',update);
-audio.addEventListener('timeupdate',()=>{seek.value=audio.duration&&Number.isFinite(audio.duration)?String(100*audio.currentTime/audio.duration):'0';fullSeek.value=seek.value});
-seek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=audio.duration*Number(seek.value)/100});
 const safe=p=>typeof p==='string'&&((p.startsWith('/mp3/')&&!p.includes('..'))||(p.startsWith('https://')&&p.includes('.public.blob.vercel-storage.com/')));
-fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo no disponible');return r.json()}).then(data=>{tracks=(Array.isArray(data.tracks)?data.tracks:[]).filter(t=>safe(t.file)&&t.title&&t.artist);status.textContent=tracks.length?tracks.length+' canciones disponibles':'Todavía no hay canciones MP3. Puedes subir la primera desde Música.';by('urbanFullStatus').textContent=status.textContent;toggle.disabled=!tracks.length;update()}).catch(()=>{toggle.disabled=true;status.textContent='No se pudo cargar la biblioteca. Intenta más tarde.';by('urbanFullStatus').textContent=status.textContent});
+function sync(){
+ toggle.textContent=audio.paused?'▶':'Ⅱ';toggle.setAttribute('aria-label',audio.paused?'Reproducir':'Pausar');
+ title.textContent=current>=0?tracks[current].title:'UrbanaTV Music';
+ artist.textContent=current>=0?tracks[current].artist:'La música no es contenido, es vida';
+ for(const [i,b] of [...list.querySelectorAll('button[data-index]')].entries()){b.classList.toggle('active',i===current);b.setAttribute('aria-current',i===current?'true':'false');b.querySelector('.track-indicator').textContent=i===current&&!audio.paused?'♫':'▶'}
+}
+function choose(i){if(!tracks.length)return;current=(i+tracks.length)%tracks.length;audio.src=tracks[current].file;audio.play().catch(()=>{status.textContent='No se pudo reproducir la canción';sync()});sync()}
+function renderList(){
+ list.replaceChildren();
+ if(!tracks.length){const p=document.createElement('p');p.className='urban-mini-status';p.textContent='Aún no hay canciones. Sube la primera desde la biblioteca.';list.append(p);return}
+ for(const [i,t] of tracks.entries()){
+ const b=document.createElement('button');b.type='button';b.className='urban-track';b.dataset.index=String(i);
+ const note=document.createElement('span');note.className='track-indicator';note.textContent='▶';
+ const desc=document.createElement('span');desc.className='track-desc';
+ const name=document.createElement('strong');name.textContent=t.title;
+ const who=document.createElement('small');who.textContent=t.artist;
+ desc.append(name,who);b.append(note,desc);b.addEventListener('click',()=>choose(i));list.append(b)
+ }
+ sync()
+}
+function show(){panel.hidden=false;open.setAttribute('aria-expanded','true');sync()}
+function hide(){panel.hidden=true;open.setAttribute('aria-expanded','false');audio.pause()}
+open.addEventListener('click',()=>{panel.hidden?show():hide()});
+$('urbanMiniClose').addEventListener('click',hide);
+listToggle.addEventListener('click',()=>{list.hidden=!list.hidden;listToggle.setAttribute('aria-expanded',String(!list.hidden));listToggle.textContent=list.hidden?'☷ Lista de canciones':'☷ Ocultar canciones'});
+toggle.addEventListener('click',()=>{if(current<0){choose(0);return}if(audio.paused)audio.play().catch(()=>{status.textContent='No se pudo reproducir'});else audio.pause()});
+$('urbanMiniPrev').addEventListener('click',()=>choose(current-1));
+$('urbanMiniNext').addEventListener('click',()=>choose(current+1));
+audio.addEventListener('ended',()=>choose(current+1));
+audio.addEventListener('play',sync);audio.addEventListener('pause',sync);
+audio.addEventListener('timeupdate',()=>{seek.value=audio.duration&&Number.isFinite(audio.duration)?String(100*audio.currentTime/audio.duration):'0'});
+seek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=audio.duration*Number(seek.value)/100});
+fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo no disponible');return r.json()}).then(data=>{tracks=(Array.isArray(data.tracks)?data.tracks:[]).filter(t=>safe(t.file)&&t.title&&t.artist);status.textContent=tracks.length?tracks.length+' canciones disponibles':'Todavía no hay canciones MP3.';toggle.disabled=!tracks.length;renderList()}).catch(()=>{toggle.disabled=true;status.textContent='No se pudo cargar la biblioteca.';renderList()});
 })();
