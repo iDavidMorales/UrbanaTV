@@ -13,3 +13,10 @@
 @keyframes urbanPlayerEnter{from{opacity:0;transform:translateY(24px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes urbanPulse{0%,100%{box-shadow:0 0 0 0 #d5ff3600}50%{box-shadow:0 0 0 6px #d5ff3616}}
 @media(prefers-reduced-motion:reduce){.urban-mini,.urban-mini-cover{animation:none!important}.urban-mini-open,.urban-mini .mini-primary,.urban-mini .urban-track,.news-preview a{transition:none!important;transform:none!important}}
+
+#urbanRouteMount[hidden]{display:none!important}
+#urbanRouteMount{position:fixed;top:65px;bottom:0;left:0;right:0;z-index:18;background:#09090a}
+body.urban-route-active{overflow:hidden}
+body.urban-route-active #urbanMiniPlayer{z-index:40}
+body.urban-route-active .top{z-index:50}
+@media(max-width:700px){#urbanRouteMount{top:calc(56px + env(safe-area-inset-top));bottom:calc(58px + env(safe-area-inset-bottom))}}
