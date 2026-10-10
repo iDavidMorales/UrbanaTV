@@ -8,8 +8,8 @@ const title=by('urbanMiniTitle'),artist=by('urbanMiniArtist'),toggle=by('urbanMi
 function update(){if(fullToggle)fullToggle.textContent=audio.paused?'▶':'Ⅱ';if(fullTitle)fullTitle.textContent=current>=0?tracks[current].title:'UrbanaTV Music';if(fullArtist)fullArtist.textContent=current>=0?tracks[current].artist:'La música no es contenido, es vida';toggle.textContent=audio.paused?'▶':'Ⅱ';toggle.setAttribute('aria-label',audio.paused?'Reproducir':'Pausar');if(current>=0){title.textContent=tracks[current].title;artist.textContent=tracks[current].artist}else{title.textContent='UrbanaTV Music';artist.textContent='La música no es contenido, es vida'}}
 function choose(i){if(!tracks.length)return;current=(i+tracks.length)%tracks.length;audio.src=tracks[current].file;audio.play().catch(()=>{status.textContent='No se pudo reproducir este MP3';update()});update()}
 function show(){panel.hidden=false;by('urbanMiniOpen').setAttribute('aria-expanded','true');update()}
-function hide(){panel.hidden=true;by('urbanMiniOpen').setAttribute('aria-expanded','false');audio.pause()}
-by('urbanMiniOpen').addEventListener('click',()=>panel.hidden?show():hide());
+function hide(){if(full&&!full.hidden){full.hidden=true;document.body.style.overflow=''}panel.hidden=true;by('urbanMiniOpen').setAttribute('aria-expanded','false');audio.pause()}
+by('urbanMiniOpen').addEventListener('click',()=>{show();full.hidden=false;document.body.style.overflow='hidden';update()});
 by('urbanMiniClose').addEventListener('click',hide);
 by('urbanExpand').addEventListener('click',()=>{show();full.hidden=false;document.body.style.overflow='hidden';update()});
 by('urbanCollapse').addEventListener('click',()=>{full.hidden=true;document.body.style.overflow='';show()});
