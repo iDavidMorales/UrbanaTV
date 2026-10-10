@@ -18,6 +18,11 @@ export default async function handler(req,res){
  const action=String(req.query.action||'');
  try{
  if(req.method==='GET'&&action==='me')return json(res,200,{user:await user(req)});
+ if(req.method==='GET'&&action==='notifications'){
+ const u=await user(req);if(!u)return json(res,401,{error:'Inicia sesión para ver notificaciones'});
+ const rows=await sql`SELECT c.id,c.video_id,c.body,c.created_at,a.name FROM urbana_tv.comments c JOIN urbana_tv.users a ON a.id=c.user_id WHERE c.user_id<> ${u.id} ORDER BY c.created_at DESC LIMIT 40`;
+ return json(res,200,{notifications:rows});
+ }
  if(req.method==='GET'&&action==='comments'){
  const id=String(req.query.video||'');if(!video.test(id))return json(res,400,{error:'Video no válido'});
  const rows=await sql`SELECT c.id,c.body,c.created_at,u.name FROM urbana_tv.comments c JOIN urbana_tv.users u ON u.id=c.user_id WHERE c.video_id=${id} ORDER BY c.created_at DESC LIMIT 100`;
