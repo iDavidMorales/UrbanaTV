@@ -221,3 +221,18 @@ button,a,.filter,.thumbnail{ -webkit-tap-highlight-color:transparent; }
  .catalog{gap:16px}
 }
 @media(prefers-reduced-motion:reduce){.catalog,.filters{scroll-behavior:auto!important}}
+
+
+/* Account chip: icon and username get their own space instead of touching */
+#authBtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:42px;max-width:180px;overflow:hidden}
+#authBtn>i{flex:0 0 auto;line-height:1}
+#authBtn .auth-user-name{display:block;min-width:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:700;letter-spacing:0}
+#authBtn.is-signed-in{width:auto;max-width:180px;padding:0 12px}
+@media(max-width:700px){
+ #authBtn.is-signed-in{width:40px!important;min-width:40px!important;max-width:40px!important;padding:0!important;gap:0}
+ #authBtn .auth-user-name{display:none}
+}
+/* Playlist control remains icon-only even when its state changes */
+#urbanTracklistToggle{font-size:0!important;position:relative}
+#urbanTracklistToggle i{font-size:15px}
+#urbanTracklistToggle:not(:has(i))::before{content:"";display:block;width:16px;height:16px;margin:auto;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat}
