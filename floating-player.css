@@ -23,3 +23,23 @@ body.urban-route-active .top{z-index:50}
 
 /* Urban visual system: vinyl, street lines, subtle motion */
 .hero,.manifesto{position:relative}.hero::after{content:"";position:absolute;inset:auto 0 0;height:130px;background:url('/assets/urban-skyline.svg') center bottom/cover no-repeat;pointer-events:none;opacity:.8}.top{z-index:70!important}.top a,.top button{cursor:pointer}.top .nav a{position:relative;transition:color .2s ease}.top .nav a:hover,.top .nav a:focus-visible{color:#d5ff36}.top .nav a::after{content:"";position:absolute;bottom:-8px;left:0;right:100%;height:2px;background:#d5ff36;transition:right .25s}.top .nav a:hover::after{right:0}.urban-mini-cover{border:1px solid #d5ff3699;border-radius:50%;box-shadow:inset 0 0 0 8px #111,0 0 13px #d5ff3638}.urban-mini-cover::first-letter{color:#d5ff36}.urban-mini{background:#101013f5;backdrop-filter:blur(20px)}.urban-mini button:focus-visible,.top a:focus-visible{outline:2px solid #d5ff36;outline-offset:3px}@media(prefers-reduced-motion:reduce){.top .nav a,.top .nav a::after{transition:none!important}}
+
+/* Compact native-like notification inbox */
+.urban-bell{position:relative;min-width:39px;font-size:21px!important;line-height:1}
+.urban-bell #urbanNotifyCount{position:absolute;top:-7px;right:-6px;min-width:18px;height:18px;display:grid;place-items:center;border-radius:12px;background:#d5ff36;color:#111;font:800 10px system-ui;box-shadow:0 0 0 2px #111}
+.urban-bell #urbanNotifyCount[hidden]{display:none}
+.urban-notification-panel[hidden]{display:none!important}
+.urban-notification-panel{position:fixed;z-index:90;right:clamp(10px,3vw,40px);top:85px;width:min(380px,calc(100vw - 20px));max-height:min(65dvh,500px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #505055;border-radius:16px;background:#161618f7;backdrop-filter:blur(20px);color:#eee;box-shadow:0 20px 45px #000c;animation:urbanNoticeIn .22s ease-out both}
+.urban-notification-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid #343438}
+.urban-notification-header strong{font-size:14px}.urban-notification-header button{color:#fff;font-size:21px;background:none;border:0;padding:2px 7px;cursor:pointer}
+.urban-notification-list{overflow:auto;scrollbar-width:thin;min-height:50px;overscroll-behavior:contain}
+.urban-notice{width:100%;display:grid;gap:4px;padding:12px 16px;text-align:left;border:0;border-bottom:1px solid #303035;background:transparent;color:#fff;cursor:pointer;transition:background .18s ease}
+.urban-notice:hover,.urban-notice:focus-visible{background:#30312a}.urban-notice.unread{box-shadow:inset 3px 0 0 #d5ff36;background:#22241e}
+.urban-notice strong{font-size:12px}.urban-notice span{font-size:12px;color:#ccc;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.urban-notice small{font-size:10px;color:#aaa}
+.urban-notice-empty{padding:14px 16px;color:#aaa;font-size:12px}.urban-mark-read{border:0;border-top:1px solid #343438;background:#1c1c1f;color:#d5ff36;padding:13px;font-size:12px;font-weight:750;cursor:pointer}
+@keyframes urbanNoticeIn{from{opacity:0;transform:translateY(-9px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){.urban-notification-panel{top:calc(61px + env(safe-area-inset-top));right:8px;max-height:65dvh;border-radius:13px}.top-inner{gap:8px}.urban-bell{padding:7px!important;min-width:35px}}
+/* App-like surfaces and accessible motion */
+.video-card,.catalog .video-card,.pill,.iconbtn,.bottom-nav button{transition:transform .22s cubic-bezier(.2,.8,.2,1),background .22s ease,border-color .22s ease,box-shadow .22s ease}
+.video-card:hover{transform:translateY(-4px)}.pill:active,.iconbtn:active,.bottom-nav button:active{transform:scale(.95)}.bottom-nav{backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+@media(prefers-reduced-motion:reduce){.urban-notification-panel{animation:none!important}.video-card,.catalog .video-card,.pill,.iconbtn,.bottom-nav button{transition:none!important}}
