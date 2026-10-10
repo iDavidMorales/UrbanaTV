@@ -3,7 +3,7 @@ const $=id=>document.getElementById(id);
 const panel=$('urbanMiniPlayer'),audio=$('urbanMiniAudio');
 if(!panel||!audio)return;
 const title=$('urbanMiniTitle'),artist=$('urbanMiniArtist'),toggle=$('urbanMiniToggle'),seek=$('urbanMiniSeek'),status=$('urbanMiniStatus'),list=$('urbanTracklist'),listToggle=$('urbanTracklistToggle'),open=$('urbanMiniOpen');
-let tracks=[],current=-1,lastSaved=0;const promoPlay=new URLSearchParams(location.search).get('playMusic')==='1';const STATE_KEY='urbanatv:last-track:v1';let saved=null;try{saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null')}catch{};
+let tracks=[],current=-1,lastSaved=0,lastUrlSync=0;const promoPlay=new URLSearchParams(location.search).get('playMusic')==='1';const STATE_KEY='urbanatv:last-track:v1';let saved=null;try{saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null')}catch{};
 function persist(force=false){if(current<0||!tracks[current])return;const now=Date.now();if(!force&&now-lastSaved<2500)return;lastSaved=now;try{localStorage.setItem(STATE_KEY,JSON.stringify({file:tracks[current].file,time:Math.max(0,audio.currentTime||0),playing:!audio.paused,updated:now}))}catch{}}
 const safe=p=>typeof p==='string'&&((p.startsWith('/mp3/')&&!p.includes('..'))||(p.startsWith('https://')&&p.includes('.public.blob.vercel-storage.com/')));
 function sync(){
@@ -12,7 +12,18 @@ function sync(){
  artist.textContent=current>=0?tracks[current].artist:'La música no es contenido, es vida';
  for(const [i,b] of [...list.querySelectorAll('button[data-index]')].entries()){b.classList.toggle('active',i===current);b.setAttribute('aria-current',i===current?'true':'false');b.querySelector('.track-indicator').innerHTML=i===current&&!audio.paused?'<i class="fa-solid fa-volume-high" aria-hidden="true"></i>':'<i class="fa-solid fa-play" aria-hidden="true"></i>'}
 }
-function choose(i){if(!tracks.length)return;persist(true);current=(i+tracks.length)%tracks.length;audio.src=tracks[current].file;audio.play().catch(()=>{status.textContent='No se pudo reproducir la canción';sync()});sync()}
+function syncUrl(force=false){
+ if(current<0||!tracks[current])return;
+ const now=Date.now();if(!force&&now-lastUrlSync<7000)return;lastUrlSync=now;
+ try{const u=new URL(location.href);u.searchParams.set('track',tracks[current].file);if(Number.isFinite(audio.currentTime)&&audio.currentTime>0)u.searchParams.set('t',String(Math.floor(audio.currentTime)));else u.searchParams.delete('t');history.replaceState({...history.state,urbanTrack:tracks[current].file},'',u.pathname+u.search+u.hash)}catch{}
+}
+function choose(i,options={}){
+ if(!tracks.length)return;persist(true);current=(i+tracks.length)%tracks.length;audio.src=tracks[current].file;
+ if(Number.isFinite(Number(options.time))&&Number(options.time)>0)audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(Number(options.time),Math.max(0,(audio.duration||Number(options.time))-1));syncUrl(true)},{once:true});
+ syncUrl(true);
+ if(options.autoplay!==false)audio.play().then(()=>{status.textContent='Reproduciendo ahora';syncUrl(true)}).catch(()=>{status.textContent='La canción está lista. Pulsa ▶ para reproducir.';sync()});
+ sync()
+}
 function renderList(){
  list.replaceChildren();
  if(!tracks.length){const p=document.createElement('p');p.className='urban-mini-status';p.textContent='Aún no hay canciones. Sube la primera desde la biblioteca.';list.append(p);return}
@@ -36,8 +47,8 @@ toggle.addEventListener('click',async()=>{if(!tracks.length){status.textContent=
 $('urbanMiniPrev').addEventListener('click',()=>choose(current-1));
 $('urbanMiniNext').addEventListener('click',()=>choose(current+1));
 audio.addEventListener('ended',()=>choose(current+1));window.addEventListener('urban-video-start',()=>{if(!audio.paused){audio.pause();status.textContent='Música pausada mientras ves el video';persist(true)}});
-audio.addEventListener('play',()=>{sync();persist(true)});audio.addEventListener('pause',()=>{sync();persist(true)});audio.addEventListener('seeked',()=>persist(true));window.addEventListener('pagehide',()=>persist(true));document.addEventListener('visibilitychange',()=>{if(document.hidden)persist(true)});
-audio.addEventListener('timeupdate',()=>{seek.value=audio.duration&&Number.isFinite(audio.duration)?String(100*audio.currentTime/audio.duration):'0';persist()});
+audio.addEventListener('play',()=>{sync();persist(true);syncUrl(true)});audio.addEventListener('pause',()=>{sync();persist(true);syncUrl(true)});audio.addEventListener('seeked',()=>{persist(true);syncUrl(true)});window.addEventListener('pagehide',()=>persist(true));document.addEventListener('visibilitychange',()=>{if(document.hidden)persist(true)});
+audio.addEventListener('timeupdate',()=>{seek.value=audio.duration&&Number.isFinite(audio.duration)?String(100*audio.currentTime/audio.duration):'0';persist();syncUrl()});
 seek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=audio.duration*Number(seek.value)/100});
-fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo no disponible');return r.json()}).then(data=>{tracks=(Array.isArray(data.tracks)?data.tracks:[]).filter(t=>safe(t.file)&&t.title&&t.artist);status.textContent=tracks.length?tracks.length+' canciones disponibles':'Todavía no hay canciones MP3.';toggle.disabled=!tracks.length;renderList();show();if(tracks.length){const found=!promoPlay&&saved&&tracks.findIndex(t=>t.file===saved.file);current=found>=0?found:0;audio.src=tracks[current].file;const resume=found>=0&&Number.isFinite(Number(saved.time))?Math.max(0,Number(saved.time)):0;if(resume){audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(resume,Math.max(0,(audio.duration||resume)-1));sync()},{once:true})}status.textContent=resume?'Retomando donde te quedaste…':'Lista para escuchar';sync();if(promoPlay||!saved||saved.playing){audio.play().then(()=>{status.textContent='Reproduciendo ahora';sync();if(promoPlay){history.replaceState({},'',location.pathname+location.hash)}}).catch(()=>{status.textContent='Pulsa ▶ para continuar escuchando';sync()})}}}).catch(()=>{toggle.disabled=true;status.textContent='No se pudo cargar la biblioteca.';renderList();show()});
+fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo no disponible');return r.json()}).then(data=>{tracks=(Array.isArray(data.tracks)?data.tracks:[]).filter(t=>safe(t.file)&&t.title&&t.artist);status.textContent=tracks.length?tracks.length+' canciones disponibles':'Todavía no hay canciones MP3.';toggle.disabled=!tracks.length;renderList();show();if(tracks.length){const params=new URLSearchParams(location.search),sharedFile=params.get('track'),sharedIndex=sharedFile?tracks.findIndex(t=>t.file===sharedFile):-1,found=sharedIndex>=0?sharedIndex:(!promoPlay&&saved?tracks.findIndex(t=>t.file===saved.file):-1);current=found>=0?found:0;audio.src=tracks[current].file;const resume=sharedIndex>=0?Math.max(0,Number(params.get('t')||0)):(found>=0&&Number.isFinite(Number(saved.time))?Math.max(0,Number(saved.time)):0);if(resume){audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(resume,Math.max(0,(audio.duration||resume)-1));sync();syncUrl(true)},{once:true})}status.textContent=sharedIndex>=0?'Enlace compartido: '+tracks[current].title:(resume?'Retomando donde te quedaste…':'Lista para escuchar');sync();if(sharedIndex>=0||promoPlay||!saved||saved.playing){audio.play().then(()=>{status.textContent='Reproduciendo ahora';sync();syncUrl(true)}).catch(()=>{status.textContent='La canción está lista. Pulsa ▶ para reproducir.';sync();syncUrl(true)})}else syncUrl(true)}}).catch(()=>{toggle.disabled=true;status.textContent='No se pudo cargar la biblioteca.';renderList();show()});
 })();
