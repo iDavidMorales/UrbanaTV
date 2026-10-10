@@ -1,0 +1,18 @@
+{
+  "name": "UrbanaTV",
+  "short_name": "UrbanaTV",
+  "description": "La música no es contenido, es vida.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#09090a",
+  "theme_color": "#09090a",
+  "icons": [
+    {
+      "src": "/assets/urbanatv-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
