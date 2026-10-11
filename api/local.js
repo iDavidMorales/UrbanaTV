@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     expires: str(p.fecha, p.expira, p.expiration, p.fecha_fin, p.valid_until),
     image: str(p.foto_post, p.photo, p.foto, p.image, p.image_url, p.logo, p.cover),
     city: str(p.ciudad, p.city, p.municipio, p.location)
-  })).filter(p => p.title && p.title !== "Promoción local" && (!p.expires || !/^\\d{4}-\\d{2}-\\d{2}$/.test(p.expires) || p.expires >= new Date().toISOString().slice(0, 10))).sort((a, b) => (a.expires || "9999-12-31").localeCompare(b.expires || "9999-12-31")).slice(0, 12);
+  })).filter(p => p.title && p.title !== "Promoción local" && (!p.expires || !/^\d{4}-\d{2}-\d{2}$/.test(p.expires) || p.expires >= new Date().toISOString().slice(0, 10))).sort((a, b) => (a.expires || "9999-12-31").localeCompare(b.expires || "9999-12-31")).slice(0, 12);
   const tours = arr(raw.tours, ["tours", "items", "data"]).map((t, i) => ({
     id: String(t.id ?? i),
     title: str(t.title, t.titulo, t.name, t.nombre),
