@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c0c0d"><title>Vista de contenido | UrbanaTV</title>
+<link rel="icon" href="/assets/urbanatv-app-icon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
+<style>
+:root{color-scheme:dark;--bg:#0c0c0d;--panel:#171719;--line:#343438;--accent:#d5ff36;--text:#f6f5f1;--muted:#aaa}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}.top{height:66px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 max(16px,calc((100vw - 1200px)/2));border-bottom:1px solid #ffffff20;position:sticky;top:0;background:#0c0c0df2;backdrop-filter:blur(12px);z-index:3}.brand{font-weight:950;font-size:24px;letter-spacing:-1px}.brand span{color:var(--accent)}.top a:last-child{font-size:11px;font-weight:850;color:var(--accent)}main{max-width:1200px;margin:auto;padding:26px 18px 60px}.eyebrow{font-size:10px;color:var(--accent);font-weight:900;letter-spacing:.15em;text-transform:uppercase}.title{font-size:clamp(26px,4vw,42px);line-height:1.1;overflow-wrap:anywhere;margin:10px 0}.url{font-size:12px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}.frame-wrap{position:relative;aspect-ratio:16/9;min-height:230px;background:#050505;border:1px solid var(--line);border-radius:15px;overflow:hidden;margin-top:22px}.frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#050505}.placeholder{padding:45px 20px;text-align:center;color:var(--muted);line-height:1.7}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:11px 15px;border:1px solid #555;border-radius:9px;font-size:11px;font-weight:900}.btn.primary{background:var(--accent);color:#111;border-color:var(--accent)}.notice{font-size:11px;line-height:1.7;color:#85858a;margin-top:18px}@media(max-width:600px){.top{height:58px}.brand{font-size:21px}main{padding:20px 12px 40px}.frame-wrap{min-height:200px;border-radius:10px}.actions .btn{flex:1 1 145px}}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="/">URBANA<span>TV</span></a><a href="/"><i class="fa-solid fa-arrow-left"></i> VOLVER A URBANATV</a></header>
+<main>
+<div class="eyebrow"><i class="fa-solid fa-expand"></i> Vista independiente de contenido</div>
+<h1 class="title" id="title">Abriendo contenido…</h1>
+<p class="url" id="urlLabel"></p>
+<div class="frame-wrap" id="frameWrap"><div class="placeholder" id="status">Preparando la vista…</div></div>
+<div class="actions"><a class="btn primary" id="openOriginal" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> ABRIR ORIGINAL</a><button class="btn" id="copy" type="button"><i class="fa-solid fa-share-nodes"></i> COPIAR / COMPARTIR</button></div>
+<p class="notice">Algunas páginas externas bloquean la reproducción dentro de otros sitios. Si no se muestran aquí, usa “Abrir original”. UrbanaTV no modifica ni aloja el contenido externo.</p>
+</main>
+<script>
+(()=>{const $=id=>document.getElementById(id);let target='';const safe=value=>{try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}};const yt=value=>{try{const u=new URL(value),host=u.hostname.replace(/^www\\./,'');let id='';if(host==='youtu.be')id=u.pathname.split('/').filter(Boolean)[0]||'';else if(host.includes('youtube.com'))id=u.searchParams.get('v')||u.pathname.match(/\\/(?:embed|shorts|live)\\/([^/?]+)/)?.[1]||'';return /^[A-Za-z0-9_-]{11}$/.test(id)?id:''}catch{return ''}};
+try{target=safe(new URLSearchParams(location.search).get('url')||'')}catch{}
+if(!target){$('title').textContent='No hay una URL válida';$('status').textContent='Abre esta vista desde un contenido de UrbanaTV o proporciona una URL HTTPS válida.';$('openOriginal').hidden=true;$('copy').hidden=true;return}
+$('title').textContent='Contenido externo';$('urlLabel').textContent=target;$('openOriginal').href=target;
+const id=yt(target);let src=target;if(id){src='https://www.youtube-nocookie.com/embed/'+id;const u=new URL(src);u.searchParams.set('rel','0');src=u.href}
+const frame=document.createElement('iframe');frame.src=src;frame.title='Contenido externo en UrbanaTV';frame.loading='eager';frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';frame.setAttribute('sandbox','allow-scripts allow-same-origin allow-presentation allow-forms allow-popups allow-popups-to-escape-sandbox');$('frameWrap').replaceChildren(frame);
+$('copy').addEventListener('click',async()=>{try{if(navigator.share)await navigator.share({title:'Contenido en UrbanaTV',url:location.href});else{await navigator.clipboard.writeText(location.href);$('copy').textContent='ENLACE COPIADO'}}catch(e){if(e.name!=='AbortError')$('copy').textContent='COPIA LA URL DESDE EL NAVEGADOR'}});
+})();
+</script>
+</body></html>
