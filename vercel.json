@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/ver",
+      "destination": "/vista.html"
+    },
+    {
       "source": "/codigo/:id",
       "destination": "/codigo.html?id=:id"
     },
