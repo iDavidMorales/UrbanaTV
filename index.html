@@ -242,7 +242,7 @@ function render(){
  for(const item of rows){
   const card=el('article','local-card'),imgUrl=safeUrl(item.image);
   card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label','Ver detalles de '+safeText(item.title||'contenido local'));
-  if(imgUrl){const img=el('img');img.src=imgUrl;img.alt=safeText(item.title);img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();card.append(img)}
+  if(imgUrl){const img=el('img');img.src=imgUrl;img.alt=safeText(item.title);img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{img.hidden=true};card.append(img)}
   const copy=el('div','local-card-copy');
   const tag=active==='places'?safeText(item.category||'Lugar local'):active==='promos'?'PROMOCIÓN LOCAL':active==='tours'?safeText(item.provider||'EXPERIENCIA'):'QR MULTIMEDIA · ROUTICKET';
   copy.append(el('span','local-card-tag',tag));
