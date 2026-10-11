@@ -116,7 +116,7 @@ fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo
    if(timer)clearInterval(timer);
    video=id;playing=false;lastTick=Date.now();logged='';
    let src;
-   try{src=new URL(iframe.src);if(src.searchParams.get('enablejsapi')!=='1'){src.searchParams.set('enablejsapi','1');src.searchParams.set('origin',location.origin);iframe.src=src.toString();return}}catch(e){}
+   try{src=new URL(iframe.src);if(src.searchParams.get('enablejsapi')!=='1'){src.searchParams.set('enablejsapi','1');src.searchParams.set('origin',location.origin);window.dispatchEvent(new Event('urban-video-end'));iframe.src=src.toString();return}}catch(e){}
    if(logged!==id){send('view');logged=id}
    iframe.addEventListener('load',()=>subscribe(iframe),{once:true});
    timer=setInterval(()=>{if(playing)tick()},10000);
