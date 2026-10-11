@@ -106,9 +106,9 @@ async function loadGoResults(q,token){
   const existing=new Set([...list.querySelectorAll('[data-go-result]')].map(n=>n.dataset.goResult));
   rows.slice(0,6).forEach(item=>{
    const id=String(item.id||item.url||item.title);if(existing.has(id))return;
-   const target=item.url||item.content_url;if(!/^https?:\/\//i.test(target||''))return;
+   const target=/^\d{1,12}$/.test(String(item.id||''))?('/codigo/'+encodeURIComponent(String(item.id))):(item.url||item.content_url);if(!target)return;
    const subtitle=[item.description,(Number(item.views)||0).toLocaleString('es-MX')+' vistas · Routicket'].filter(Boolean).join(' · ').slice(0,150);
-   const b=addOption('fa-solid fa-qrcode',item.title||'Contenido de Routicket',subtitle,'ROUTICKET',()=>{window.open(target,'_blank','noopener,noreferrer');hideSuggestions()},{'data-go-result':id});
+   const b=addOption('fa-solid fa-qrcode',item.title||'Contenido de Routicket',subtitle,'ROUTICKET',()=>{location.href=target;hideSuggestions()},{'data-go-result':id});
    b.dataset.goResult=id;
   });
   if(!rows.length&&!list.querySelector('.urban-suggestion')){const empty=document.createElement('div');empty.className='urban-search-hint';empty.textContent='No encontramos coincidencias en Routicket. Prueba con otra palabra.';list.append(empty)}
@@ -280,7 +280,7 @@ function showLocalDetail(item,tag,kind){
  meta.textContent=bits.filter(Boolean).join(' · ');
  const imageUrl=safeUrl(item.image);img.hidden=!imageUrl;if(imageUrl){img.src=imageUrl;img.alt=safeText(item.title||'Imagen del lugar');img.onerror=()=>{img.hidden=true}}
  const url=safeUrl(item.url)||safeUrl(item.content_url);
- source.hidden=!url;if(url){source.href=url;source.target='_blank';source.rel='noopener noreferrer';source.textContent=kind==='promos'?'VER PROMOCIÓN EN ROUTICKET ↗':kind==='tours'?'CONSULTAR EXPERIENCIA ↗':kind==='media'?'ABRIR CONTENIDO ↗':'VER EN ROUTICKET ↗'}
+ source.hidden=!url;if(url){source.href=url;source.target=kind==='media'&&/^\/codigo\//.test(url)?'_self':'_blank';source.rel='noopener noreferrer';source.textContent=kind==='promos'?'VER PROMOCIÓN EN ROUTICKET ↗':kind==='tours'?'CONSULTAR EXPERIENCIA ↗':kind==='media'?'ABRIR CONTENIDO EN URBANATV ↗':'VER EN ROUTICKET ↗'}
  detailModal.hidden=false;document.body.classList.add('no-scroll');
 }
 function closeDetail(){if(detailModal){detailModal.hidden=true;document.body.classList.remove('no-scroll')}}
@@ -307,7 +307,7 @@ async function loadLocal(){
  }
  if(responses[1].status==='fulfilled'&&responses[1].value?.ok){
   const d=responses[1].value;
-  payload.media=(Array.isArray(d.results)?d.results:[]).map(x=>({id:x.id,title:x.title,description:x.code&&x.code!==x.title?x.code:'Contenido multimedia con ubicación en el mapa Routicket',image:x.image,url:x.url,content_url:x.content_url,views:x.views,lat:x.lat,lng:x.lng}));
+  payload.media=(Array.isArray(d.results)?d.results:[]).map(x=>({id:x.id,title:x.title,description:x.code&&x.code!==x.title?x.code:'Contenido multimedia con ubicación en el mapa Routicket',image:x.image,url:/^\d{1,12}$/.test(String(x.id||''))?('/codigo/'+encodeURIComponent(String(x.id))):x.url,content_url:x.content_url,views:x.views,lat:x.lat,lng:x.lng}));
   sources++;
  }
  const total=payload.places.length+payload.promos.length+payload.tours.length+payload.media.length;
