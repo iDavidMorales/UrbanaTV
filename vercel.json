@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/codigo/:id",
+      "destination": "/codigo.html?id=:id"
+    },
+    {
       "source": "/musica",
       "destination": "/musica.html"
     },
