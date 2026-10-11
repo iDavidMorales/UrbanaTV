@@ -46,7 +46,8 @@ export default async function handler(req, res) {
       const codeUrl = safeUrl(item?.code);
       return {
         id: String(id),
-        title: text(item?.text, item?.title, item?.nombre, item?.name, item?.clave, "Contenido de Routicket"),
+        title: text(item?.text, item?.title, item?.nombre, item?.name, item?.clave, item?.shortx, item?.upc, "Contenido de Routicket"),
+        description: text(item?.shortx, item?.htmlp, item?.clave, item?.upc),
         code: text(item?.code),
         content_url: codeUrl,
         image: safeUrl(item?.foto ?? item?.image ?? item?.image_url),
