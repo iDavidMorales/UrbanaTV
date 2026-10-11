@@ -51,10 +51,9 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), input=$('urbanSmartSearch'), list=$('urbanSearchSuggestions');
 if(!input||!list)return;
-let cityResults=[],timer=0,selectedCity=null;
-const esc=s=>String(s??'');
+let cityResults=[],timer=0,goTimer=0,searchToken=0,selectedCity=null;
 const weatherText=code=>({0:'Despejado',1:'Mayormente despejado',2:'Parcialmente nublado',3:'Nublado',45:'Niebla',48:'Niebla',51:'Llovizna ligera',53:'Llovizna',55:'Llovizna intensa',61:'Lluvia ligera',63:'Lluvia',65:'Lluvia intensa',71:'Nieve ligera',73:'Nieve',75:'Nieve intensa',80:'Chubascos ligeros',81:'Chubascos',82:'Chubascos fuertes',95:'Tormenta eléctrica',96:'Tormenta con granizo',99:'Tormenta intensa'})[code]||'Condiciones actuales';
-const weatherIcon=code=>code===0?'☀':([1,2].includes(code)?'🌤':code===3?'☁':([45,48].includes(code)?'🌫':([51,53,55,61,63,65,80,81,82].includes(code)?'🌧':([95,96,99].includes(code)?'⛈':'🌦')));
+const weatherIcon=code=>code===0?'☀':([1,2].includes(code)?'🌤':code===3?'☁':([45,48].includes(code)?'🌫':([51,53,55,61,63,65,80,81,82].includes(code)?'🌧':([95,96,99].includes(code)?'⛈':'🌦'))));
 function setCityName(name,region,country){$('urbanCity').textContent=[name,region].filter(Boolean).join(', ')||'Tu ciudad';$('urbanWeatherText').textContent=country||'Clima local'}
 async function loadWeather(lat,lon,name,region,country){
  setCityName(name,region,country);$('urbanWeatherText').textContent='Consultando clima…';
@@ -63,21 +62,46 @@ async function loadWeather(lat,lon,name,region,country){
 async function geocode(q){const u=new URL('https://geocoding-api.open-meteo.com/v1/search');u.search=new URLSearchParams({name:q,count:'6',language:'es',format:'json',countryCode:'MX'}).toString();const r=await fetch(u);if(!r.ok)throw Error();const d=await r.json();return (d.results||[]).map(x=>({name:x.name,region:x.admin1||'',country:x.country||'',lat:x.latitude,lon:x.longitude,timezone:x.timezone||'',label:[x.name,x.admin1,x.country].filter(Boolean).join(', ')}))}
 function chooseCity(c){selectedCity=c;loadWeather(c.lat,c.lon,c.name,c.region,c.country);hideSuggestions();input.value='';$('urbanSmartSearchClear').hidden=true}
 function hideSuggestions(){list.hidden=true;list.replaceChildren();input.setAttribute('aria-expanded','false')}
-function addOption(icon,title,subtitle,kind,action){const b=document.createElement('button');b.type='button';b.className='urban-suggestion';b.setAttribute('role','option');const i=document.createElement('i');i.className=icon;b.append(i);const copy=document.createElement('span');copy.textContent=title;if(subtitle){const sm=document.createElement('small');sm.textContent=subtitle;copy.append(sm)}b.append(copy);const k=document.createElement('span');k.className='kind';k.textContent=kind;b.append(k);b.addEventListener('click',action);list.append(b)}
-function showSuggestions(q){list.replaceChildren();const term=q.trim().toLowerCase();if(!term){hideSuggestions();return}const hint=document.createElement('div');hint.className='urban-search-hint';hint.textContent='Sugerencias de videos, noticias, lugares y ciudades';list.append(hint);
+function addOption(icon,title,subtitle,kind,action,attrs={}){const b=document.createElement('button');b.type='button';b.className='urban-suggestion';b.setAttribute('role','option');Object.entries(attrs).forEach(([k,v])=>b.setAttribute(k,v));const i=document.createElement('i');i.className=icon;b.append(i);const copy=document.createElement('span');copy.textContent=title;if(subtitle){const sm=document.createElement('small');sm.textContent=subtitle;copy.append(sm)}b.append(copy);const k=document.createElement('span');k.className='kind';k.textContent=kind;b.append(k);b.addEventListener('click',action);list.append(b);return b}
+function showSuggestions(q){list.replaceChildren();const term=q.trim().toLowerCase();if(!term){hideSuggestions();return}const hint=document.createElement('div');hint.className='urban-search-hint';hint.textContent='Sugerencias de UrbanaTV, ciudades y contenido Routicket';list.append(hint);
  const videoTitles=[...document.querySelectorAll('#catalog .video-card')].map(card=>({title:card.querySelector('h3')?.textContent||card.querySelector('.video-title')?.textContent||'',subtitle:card.querySelector('.tag')?.textContent||'Video'})).filter(v=>v.title.toLowerCase().includes(term)).slice(0,4);
  videoTitles.forEach(v=>addOption('fa-solid fa-play',v.title,v.subtitle,'VIDEO',()=>{const old=$('search');if(old){old.value=v.title;old.dispatchEvent(new Event('input',{bubbles:true}));$('explorar')?.scrollIntoView({behavior:'smooth'});hideSuggestions()}}));
  const local=[['Playa del Carmen','Quintana Roo'],['Cancún','Quintana Roo'],['Tulum','Quintana Roo'],['Puerto Morelos','Quintana Roo'],['Cozumel','Quintana Roo'],['Mérida','Yucatán']].filter(x=>x.join(' ').toLowerCase().includes(term)).slice(0,3);
  local.forEach(([name,region])=>addOption('fa-solid fa-location-dot',name,region,'CIUDAD',()=>geocode(name+', '+region+', México').then(xs=>xs[0]&&chooseCity(xs[0])).catch(()=>{})));
- const placeLinks=[{title:'Lugares cerca de ti',url:'https://routicket.com/plugins/smart/',icon:'fa-solid fa-map-location-dot'},{title:'Promociones locales',url:'https://routicket.com/',icon:'fa-solid fa-ticket'},{title:'Noticias y eventos',url:'/noticias',icon:'fa-regular fa-newspaper'}];
- placeLinks.filter(x=>(x.title+' '+term).toLowerCase().includes(term)||term.length>0).slice(0,3).forEach(x=>addOption(x.icon,x.title,'Explora la comunidad Routicket','ROUTICKET',()=>{location.href=x.url}));
+ const shortcuts=[{title:'Abrir mapa multimedia de Routicket',keywords:'mapa multimedia videos qr tiktok youtube spotify',url:'https://routicket.com/plugins/go/',icon:'fa-solid fa-map-location-dot'},{title:'Explorar lugares y rutas locales',keywords:'lugar lugares cerca rutas restaurante turismo',url:'https://routicket.com/plugins/smart/',icon:'fa-solid fa-compass'},{title:'Ver noticias y eventos',keywords:'noticias eventos actualidad',url:'/noticias',icon:'fa-regular fa-newspaper'}];
+ shortcuts.filter(x=>(x.title+' '+x.keywords).toLowerCase().includes(term)).slice(0,2).forEach(x=>addOption(x.icon,x.title,'Abrir experiencia','ABRIR',()=>{location.href=x.url}));
  list.hidden=false;input.setAttribute('aria-expanded','true');
 }
-input.addEventListener('input',()=>{clearTimeout(timer);$('urbanSmartSearchClear').hidden=!input.value;const q=input.value;showSuggestions(q);if(q.trim().length>=3){timer=setTimeout(async()=>{try{cityResults=await geocode(q);const term=q.trim().toLowerCase();const matched=cityResults.filter(c=>c.label.toLowerCase().includes(term));if(!matched.length)return;list.querySelectorAll('[data-city-result]').forEach(n=>n.remove());matched.slice(0,4).forEach(c=>{const b=document.createElement('button');b.type='button';b.className='urban-suggestion';b.dataset.cityResult='1';b.setAttribute('role','option');const i=document.createElement('i');i.className='fa-solid fa-location-dot';const s=document.createElement('span');s.textContent=c.label;const small=document.createElement('small');small.textContent='Ver clima de esta ciudad';s.append(small);const k=document.createElement('span');k.className='kind';k.textContent='CIUDAD';b.append(i,s,k);b.addEventListener('click',()=>chooseCity(c));list.append(b)});list.hidden=false;input.setAttribute('aria-expanded','true')}catch{}},320)}});
+async function loadGoResults(q,token){
+ try{
+  const r=await fetch('/api/go-search?query='+encodeURIComponent(q)+'&limit=6&sort=views',{headers:{Accept:'application/json'},cache:'no-store'});
+  if(!r.ok)return;const d=await r.json();if(token!==searchToken||!Array.isArray(d.results)||!d.results.length)return;
+  const existing=new Set([...list.querySelectorAll('[data-go-result]')].map(n=>n.dataset.goResult));
+  d.results.slice(0,5).forEach(item=>{
+   const id=String(item.id||item.url||item.title);if(existing.has(id))return;
+   const target=item.content_url||item.url;if(!/^https?:\/\//i.test(target||''))return;
+   const b=addOption('fa-solid fa-qrcode',item.title||'Contenido de Routicket',(Number(item.views)||0).toLocaleString('es-MX')+' vistas · QR de la comunidad','ROUTICKET',()=>{window.open(target,'_blank','noopener,noreferrer');hideSuggestions()},{'data-go-result':id});
+   b.dataset.goResult=id;
+  });
+  if(d.results.length){list.hidden=false;input.setAttribute('aria-expanded','true')}
+ }catch{}
+}
+input.addEventListener('input',()=>{clearTimeout(timer);clearTimeout(goTimer);const q=input.value;$('urbanSmartSearchClear').hidden=!q;const token=++searchToken;showSuggestions(q);if(q.trim().length>=3){timer=setTimeout(async()=>{try{cityResults=await geocode(q);if(token!==searchToken)return;const term=q.trim().toLowerCase();const matched=cityResults.filter(c=>c.label.toLowerCase().includes(term));matched.slice(0,4).forEach(c=>{const b=addOption('fa-solid fa-location-dot',c.label,'Ver clima de esta ciudad','CIUDAD',()=>chooseCity(c),{'data-city-result':c.label});b.dataset.cityResult=c.label});if(matched.length){list.hidden=false;input.setAttribute('aria-expanded','true')}}catch{}},320)}if(q.trim().length>=2)goTimer=setTimeout(()=>loadGoResults(q.trim(),token),220)});
 input.addEventListener('keydown',e=>{if(e.key==='Escape')hideSuggestions();if(e.key==='Enter'){const q=input.value.trim();if(!q)return;const old=$('search');if(old){old.value=q;old.dispatchEvent(new Event('input',{bubbles:true}));$('explorar')?.scrollIntoView({behavior:'smooth'});hideSuggestions()}else location.href='/noticias?q='+encodeURIComponent(q)}});
-$('urbanSmartSearchClear').addEventListener('click',()=>{input.value='';$('urbanSmartSearchClear').hidden=true;hideSuggestions();input.focus()});
+$('urbanSmartSearchClear').addEventListener('click',()=>{input.value='';$('urbanSmartSearchClear').hidden=true;searchToken++;hideSuggestions();input.focus()});
 document.addEventListener('click',e=>{if(!e.target.closest('.urban-search-wrap'))hideSuggestions()});
-$('urbanLocationBtn').addEventListener('click',()=>{if(!navigator.geolocation){$('urbanWeatherText').textContent='Ubicación no disponible en este navegador';return}$('urbanWeatherText').textContent='Solicitando permiso de ubicación…';navigator.geolocation.getCurrentPosition(async pos=>{try{const u=new URL('https://geocoding-api.open-meteo.com/v1/reverse');u.search=new URLSearchParams({latitude:pos.coords.latitude,longitude:pos.coords.longitude,language:'es',format:'json'}).toString();const r=await fetch(u);const d=r.ok?await r.json():{};const p=d.results?.[0]||{};loadWeather(pos.coords.latitude,pos.coords.longitude,p.name||'Tu ubicación',p.admin1||'',p.country||'Clima local')}catch{loadWeather(pos.coords.latitude,pos.coords.longitude,'Tu ubicación','','Clima local')}},{timeout:9000,maximumAge:600000,enableHighAccuracy:false},);
+$('urbanLocationBtn').addEventListener('click',()=>{
+ if(!navigator.geolocation){$('urbanWeatherText').textContent='Ubicación no disponible en este navegador';return}
+ $('urbanWeatherText').textContent='Solicitando permiso de ubicación…';
+ navigator.geolocation.getCurrentPosition(async pos=>{
+  const lat=pos.coords.latitude,lon=pos.coords.longitude;
+  try{
+   const u=new URL('https://nominatim.openstreetmap.org/reverse');u.search=new URLSearchParams({format:'jsonv2',lat:String(lat),lon:String(lon),zoom:'10',addressdetails:'1','accept-language':'es'}).toString();
+   const r=await fetch(u,{headers:{Accept:'application/json'}});if(!r.ok)throw Error();const d=await r.json(),a=d.address||{};
+   const name=a.city||a.town||a.village||a.municipality||a.county||'Tu ubicación',region=a.state||'',country=a.country||'México';
+   loadWeather(lat,lon,name,region,country);
+  }catch{loadWeather(lat,lon,'Tu ubicación','','Clima de tu ubicación')}
+ },err=>{$('urbanWeatherText').textContent=err.code===1?'Permiso de ubicación denegado':'No se pudo detectar la ubicación';},{timeout:9000,maximumAge:600000,enableHighAccuracy:false});
 });
 const fallback={name:'Playa del Carmen',region:'Quintana Roo',country:'México',lat:20.6296,lon:-87.0739};loadWeather(fallback.lat,fallback.lon,fallback.name,fallback.region,fallback.country);
 })();
@@ -144,12 +168,13 @@ const fallback={name:'Playa del Carmen',region:'Quintana Roo',country:'México',
   <div class="shell">
     <div class="heading">
       <div><span class="eyebrow"><span class="dot"></span> URBANA CERCA DE TI · ROUTICKET</span><h2 id="localRouticketTitle">TAMBIÉN PASA <em style="color:var(--accent);font-style:normal">POR AQUÍ.</em></h2><p>Descubre lugares, promociones y experiencias de la Riviera Maya.</p></div>
-      <a class="outline" href="https://routicket.com/plugins/smart/" target="_blank" rel="noopener noreferrer">EXPLORAR ROUTICKET ↗</a>
+      <a class="outline" href="https://routicket.com/plugins/go/" target="_blank" rel="noopener noreferrer">EXPLORAR ROUTICKET ↗</a>
     </div>
     <div class="local-tabs" role="tablist" aria-label="Descubrimiento local">
       <button class="local-tab active" type="button" data-local-tab="places">LUGARES</button>
       <button class="local-tab" type="button" data-local-tab="promos">PROMOCIONES</button>
       <button class="local-tab" type="button" data-local-tab="tours">PLANES Y TOURS</button>
+      <button class="local-tab" type="button" data-local-tab="media">CONTENIDO EN EL MAPA</button>
     </div>
     <p id="localRouticketStatus" class="local-status" aria-live="polite">Conectando con Routicket…</p>
     <div id="localRouticketGrid" class="local-grid"></div>
@@ -160,7 +185,66 @@ const fallback={name:'Playa del Carmen',region:'Quintana Roo',country:'México',
 .local-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px}.local-tab{background:#19191a;color:#ddd;border:1px solid #3c3c3e;padding:11px 16px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.8px}.local-tab.active,.local-tab:hover{background:var(--accent);border-color:var(--accent);color:#111}.local-status,.local-footnote{font-size:12px;color:var(--muted);line-height:1.7}.local-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.local-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:13px}.local-card img{width:100%;height:175px;object-fit:cover;background:#242426}.local-card-copy{padding:16px;display:flex;flex-direction:column;gap:9px;flex:1}.local-card-tag{font-size:10px;font-weight:900;letter-spacing:1.2px;color:var(--accent);text-transform:uppercase}.local-card h3{font:800 25px/1 'Barlow Condensed',sans-serif;text-transform:uppercase;margin:0;overflow-wrap:anywhere}.local-card p{font-size:12px;line-height:1.65;color:#bbb;margin:0}.local-card a{display:inline-flex;align-items:center;gap:7px;margin-top:auto;padding-top:7px;color:var(--accent);font-size:11px;font-weight:900;letter-spacing:.6px}.local-empty{grid-column:1/-1;padding:22px;border:1px dashed #454548;border-radius:12px;color:#aaa;font-size:13px}.local-card-price{font-weight:900;color:white}.local-card a:focus-visible,.local-tab:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:760px){.local-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.local-card img{height:135px}.local-card-copy{padding:12px}.local-card h3{font-size:22px}}@media(max-width:480px){.local-grid{grid-template-columns:1fr}.local-card{display:grid;grid-template-columns:110px minmax(0,1fr)}.local-card img{height:100%;min-height:150px}.local-card-copy{padding:13px}.local-card h3{font-size:21px}.local-card p{font-size:12px}}
 </style>
 <script>
-(()=>{const grid=document.getElementById('localRouticketGrid'),status=document.getElementById('localRouticketStatus');if(!grid||!status)return;let payload={places:[],promos:[],tours:[]},active='places';const safeText=v=>String(v??'').trim();const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n};function render(){grid.replaceChildren();const rows=payload[active]||[];if(!rows.length){grid.append(el('div','local-empty',active==='places'?'Aún no hay lugares disponibles en el feed público. Explora el mapa de Routicket para descubrir más.':active==='promos'?'Por ahora no encontramos promociones públicas. Vuelve pronto o explora Routicket.':'No encontramos experiencias disponibles en este momento.'));return}for(const item of rows){const card=el('article','local-card'),imgUrl=safeText(item.image);if(imgUrl&&/^https:\/\//i.test(imgUrl)){const img=el('img');img.src=imgUrl;img.alt=safeText(item.title);img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();card.append(img)}const copy=el('div','local-card-copy');copy.append(el('span','local-card-tag',active==='places'?safeText(item.category||'Lugar local'):active==='promos'?'PROMOCIÓN LOCAL':safeText(item.provider||'EXPERIENCIA')));copy.append(el('h3','',safeText(item.title)));if(item.description)copy.append(el('p','',safeText(item.description).slice(0,180)));if(active==='tours'&&item.price!==null&&item.price!==''&&Number.isFinite(Number(item.price))){copy.append(el('p','local-card-price','$'+Number(item.price).toLocaleString('es-MX')+' '+safeText(item.currency||'MXN')))}if(item.expires)copy.append(el('p','', 'Vigencia: '+safeText(item.expires)));const a=el('a','',active==='places'?'VER LUGAR ↗':active==='promos'?'VER PROMOCIÓN ↗':'DESCUBRIR EXPERIENCIA ↗');a.href=/^https:\/\//i.test(safeText(item.url))?item.url:'https://routicket.com/';a.target='_blank';a.rel='noopener noreferrer';copy.append(a);card.append(copy);grid.append(card)}}document.querySelectorAll('[data-local-tab]').forEach(btn=>btn.addEventListener('click',()=>{active=btn.dataset.localTab;document.querySelectorAll('[data-local-tab]').forEach(b=>b.classList.toggle('active',b===btn));render()}));fetch('/api/local',{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(d=>{if(!d||d.ok!==true)throw Error('Invalid response');payload={places:Array.isArray(d.places)?d.places:[],promos:Array.isArray(d.promos)?d.promos:[],tours:Array.isArray(d.tours)?d.tours:[]};const total=payload.places.length+payload.promos.length+payload.tours.length;status.textContent=total?'Datos de Routicket · '+payload.places.length+' lugares · '+payload.promos.length+' promociones · '+payload.tours.length+' experiencias':'Routicket respondió, pero todavía no hay contenido público para mostrar.';render()}).catch(()=>{status.textContent='No pudimos conectar ahora con Routicket. El resto de UrbanaTV sigue disponible.';grid.append(el('div','local-empty','La sección local se actualizará automáticamente cuando las fuentes públicas estén disponibles.'))})})();
+(()=> {
+const grid=document.getElementById('localRouticketGrid'),status=document.getElementById('localRouticketStatus');
+if(!grid||!status)return;
+let payload={places:[],promos:[],tours:[],media:[]},active='places';
+const safeText=v=>String(v??'').trim();
+const safeUrl=v=>{try{const u=new URL(String(v||''));return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}};
+const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n};
+function render(){
+ grid.replaceChildren();
+ const rows=payload[active]||[];
+ if(!rows.length){
+  const emptyText=active==='places'?'Aún no hay lugares disponibles en el feed público. Explora el mapa de Routicket para descubrir más.':active==='promos'?'Por ahora no encontramos promociones públicas. Vuelve pronto o explora Routicket.':active==='tours'?'No encontramos experiencias disponibles en este momento.':'No hay contenido multimedia geolocalizado en esta zona por ahora.';
+  grid.append(el('div','local-empty',emptyText));return;
+ }
+ for(const item of rows){
+  const card=el('article','local-card'),imgUrl=safeUrl(item.image);
+  if(imgUrl){const img=el('img');img.src=imgUrl;img.alt=safeText(item.title);img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.remove();card.append(img)}
+  const copy=el('div','local-card-copy');
+  const tag=active==='places'?safeText(item.category||'Lugar local'):active==='promos'?'PROMOCIÓN LOCAL':active==='tours'?safeText(item.provider||'EXPERIENCIA'):'QR MULTIMEDIA · ROUTICKET';
+  copy.append(el('span','local-card-tag',tag));
+  copy.append(el('h3','',safeText(item.title||'Contenido de Routicket')));
+  if(item.description)copy.append(el('p','',safeText(item.description).slice(0,180)));
+  if(active==='media'&&Number(item.views)>0)copy.append(el('p','local-card-price',Number(item.views).toLocaleString('es-MX')+' vistas en Routicket'));
+  if(active==='tours'&&item.price!==null&&item.price!==''&&Number.isFinite(Number(item.price)))copy.append(el('p','local-card-price','$'+Number(item.price).toLocaleString('es-MX')+' '+safeText(item.currency||'MXN')));
+  if(item.expires)copy.append(el('p','', 'Vigencia: '+safeText(item.expires)));
+  const a=el('a','',active==='places'?'VER LUGAR ↗':active==='promos'?'VER PROMOCIÓN ↗':active==='tours'?'DESCUBRIR EXPERIENCIA ↗':'ABRIR CONTENIDO ↗');
+  a.href=safeUrl(active==='media'?(item.content_url||item.url):item.url)||'https://routicket.com/plugins/go/';
+  a.target='_blank';a.rel='noopener noreferrer';copy.append(a);card.append(copy);grid.append(card);
+ }
+}
+document.querySelectorAll('[data-local-tab]').forEach(btn=>btn.addEventListener('click',()=>{active=btn.dataset.localTab;document.querySelectorAll('[data-local-tab]').forEach(b=>b.classList.toggle('active',b===btn));render()}));
+async function loadLocal(){
+ status.textContent='Conectando con Routicket Go y el catálogo local…';
+ const responses=await Promise.allSettled([
+  fetch('/api/local',{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}),
+  fetch('/api/go-map?bbox=20.3,-87.6,21.1,-86.7',{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()})
+ ]);
+ let sources=0;
+ if(responses[0].status==='fulfilled'&&responses[0].value?.ok){
+  const d=responses[0].value;
+  payload.places=Array.isArray(d.places)?d.places:[];
+  payload.promos=Array.isArray(d.promos)?d.promos:[];
+  payload.tours=Array.isArray(d.tours)?d.tours:[];
+  sources++;
+ }
+ if(responses[1].status==='fulfilled'&&responses[1].value?.ok){
+  const d=responses[1].value;
+  payload.media=(Array.isArray(d.results)?d.results:[]).map(x=>({
+   id:x.id,title:x.title,description:x.code&&x.code!==x.title?x.code:'Contenido multimedia con ubicación en el mapa Routicket',
+   image:x.image,url:x.url,content_url:x.content_url,views:x.views,lat:x.lat,lng:x.lng
+  }));
+  sources++;
+ }
+ const total=payload.places.length+payload.promos.length+payload.tours.length+payload.media.length;
+ status.textContent=total?'Routicket conectado · '+payload.places.length+' lugares · '+payload.promos.length+' promociones · '+payload.tours.length+' experiencias · '+payload.media.length+' QR multimedia geolocalizados':'No pudimos recuperar contenido local en este momento. Puedes abrir Routicket Go para explorar directamente.';
+ if(!sources)status.textContent='No pudimos conectar ahora con Routicket. El resto de UrbanaTV sigue disponible.';
+ render();
+}
+loadLocal().catch(()=>{status.textContent='No pudimos conectar ahora con Routicket. El resto de UrbanaTV sigue disponible.';render()});
+})();
 </script>
 <footer class="footer"><div class="shell footer-inner"><div class="brand"><img class="brand-icon" src="/assets/urbanatv-app-icon.svg" alt="UrbanaTV" width="42" height="42">URBANA<span>TV.</span><small>LA CALLE TIENE VOZ</small></div><p>© <span id="year"></span> UrbanaTV · Hecho para la cultura.</p><button class="share-page-button" id="globalShareButton" type="button" aria-label="Compartir página" title="Compartir"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i></button><p>El contenido de YouTube pertenece a sus respectivos creadores.</p></div></footer>
 <aside id="appPromo" class="app-promo" hidden aria-label="Descarga UrbanaTV">
