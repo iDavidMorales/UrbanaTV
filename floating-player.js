@@ -167,3 +167,5 @@ fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo
   requestAnimationFrame(()=>{scheduled=false;sortCards()});
  }).observe(root,{childList:true});
 })();
+/* Ensure telemetry observes the iframe after enabling the YouTube player API. */
+(()=>{const modal=document.getElementById('watchModal');if(!modal)return;const check=()=>{const frame=modal.querySelector('#player iframe');if(frame&&frame.src.includes('enablejsapi=1')&&!frame.dataset.urbanApiObserved){frame.dataset.urbanApiObserved='1';const parent=frame.parentNode;if(parent){parent.removeChild(frame);parent.appendChild(frame)}}};setInterval(check,1200)})();
