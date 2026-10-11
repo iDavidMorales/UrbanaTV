@@ -231,12 +231,13 @@ if(!grid||!status)return;
 let payload={places:[],promos:[],tours:[],media:[]},active='places';
 const safeText=v=>String(v??'').trim();
 const safeUrl=v=>{try{const u=new URL(String(v||''));return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}};
-const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt)n.textContent=txt;return n};
+const el=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined&&txt!==null)n.textContent=txt;return n};
+const detailModal=document.getElementById('localDetailModal');
 function render(){
  grid.replaceChildren();
  const rows=payload[active]||[];
  if(!rows.length){
-  const emptyText=active==='places'?'Aún no hay lugares disponibles en el feed público. Explora el mapa de Routicket para descubrir más.':active==='promos'?'Por ahora no encontramos promociones públicas. Vuelve pronto o explora Routicket.':active==='tours'?'No encontramos experiencias disponibles en este momento.':'No hay contenido multimedia geolocalizado en esta zona por ahora.';
+  const emptyText=active==='places'?'No se pudieron mostrar lugares ahora mismo. Puedes abrir el mapa de Routicket para explorar más.':active==='promos'?'No hay promociones vigentes disponibles en este momento.':active==='tours'?'No encontramos experiencias disponibles en este momento.':'No hay contenido multimedia geolocalizado en esta zona por ahora.';
   grid.append(el('div','local-empty',emptyText));return;
  }
  for(const item of rows){
@@ -249,17 +250,39 @@ function render(){
   copy.append(el('h3','',safeText(item.title||'Contenido de Routicket')));
   if(item.description)copy.append(el('p','',safeText(item.description).slice(0,180)));
   if(active==='media'&&Number(item.views)>0)copy.append(el('p','local-card-price',Number(item.views).toLocaleString('es-MX')+' vistas'));
-  if(active==='tours'&&item.price!==null&&item.price!==''&&Number.isFinite(Number(item.price)))copy.append(el('p','local-card-price','
+  if(active==='tours'&&item.price!==null&&item.price!==''&&Number.isFinite(Number(item.price)))copy.append(el('p','local-card-price',new Intl.NumberFormat('es-MX',{style:'currency',currency:/^[A-Z]{3}$/.test(item.currency||'MXN')?item.currency:'MXN',maximumFractionDigits:0}).format(Number(item.price))));
+  if(active==='promos'&&item.expires)copy.append(el('p','local-card-price','Vigencia: '+safeText(item.expires)));
+  card.append(copy);
+  card.addEventListener('click',()=>showLocalDetail(item,tag,active));
+  card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();showLocalDetail(item,tag,active)}});
+  grid.append(card);
  }
 }
-
-const detailModal=document.getElementById('localDetailModal');
 function showLocalDetail(item,tag,kind){
+ if(!detailModal)return;
  const title=document.getElementById('localDetailTitle'),desc=document.getElementById('localDetailDescription'),meta=document.getElementById('localDetailMeta'),img=document.getElementById('localDetailImage'),source=document.getElementById('localDetailSource');
- title.textContent=safeText(item.title||'Contenido local');desc.textContent=safeText(item.description||'Consulta los detalles disponibles de este lugar en UrbanaTV.');
- document.getElementById('localDetailTag').textContent=tag;meta.textContent=[safeText(item.city),safeText(item.category),item.expires?'Vigencia: '+safeText(item.expires):'',kind==='media'&&Number(item.views)>0?Number(item.views).toLocaleString('es-MX')+' vistas':'',kind==='tours'&&item.price!==null&&item.price!==''?'
+ title.textContent=safeText(item.title||'Contenido local');
+ desc.textContent=safeText(item.description||'Consulta los detalles disponibles en Routicket.');
+ document.getElementById('localDetailTag').textContent=tag;
+ const bits=[safeText(item.city),safeText(item.category),item.expires?'Vigencia: '+safeText(item.expires):'',kind==='media'&&Number(item.views)>0?Number(item.views).toLocaleString('es-MX')+' vistas':''];
+ if(kind==='tours'&&item.price!==null&&item.price!==''&&Number.isFinite(Number(item.price)))bits.push(new Intl.NumberFormat('es-MX',{style:'currency',currency:/^[A-Z]{3}$/.test(item.currency||'MXN')?item.currency:'MXN',maximumFractionDigits:0}).format(Number(item.price)));
+ if(kind==='places'&&Number.isFinite(Number(item.lat))&&Number.isFinite(Number(item.lng)))bits.push('Ubicación disponible en el mapa de Routicket');
+ meta.textContent=bits.filter(Boolean).join(' · ');
+ const imageUrl=safeUrl(item.image);img.hidden=!imageUrl;if(imageUrl){img.src=imageUrl;img.alt=safeText(item.title||'Imagen del lugar');img.onerror=()=>{img.hidden=true}}
+ const url=safeUrl(item.url)||safeUrl(item.content_url);
+ source.hidden=!url;if(url){source.href=url;source.target='_blank';source.rel='noopener noreferrer';source.textContent=kind==='promos'?'VER PROMOCIÓN EN ROUTICKET ↗':kind==='tours'?'CONSULTAR EXPERIENCIA ↗':kind==='media'?'ABRIR CONTENIDO ↗':'VER EN ROUTICKET ↗'}
+ detailModal.hidden=false;document.body.classList.add('no-scroll');
+}
+function closeDetail(){if(detailModal){detailModal.hidden=true;document.body.classList.remove('no-scroll')}}
+detailModal?.querySelectorAll('[data-local-detail-close]').forEach(b=>b.addEventListener('click',closeDetail));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&detailModal&&!detailModal.hidden)closeDetail()});
+document.querySelectorAll('[data-local-tab]').forEach(tab=>tab.addEventListener('click',()=>{
+ active=tab.dataset.localTab||'places';
+ document.querySelectorAll('[data-local-tab]').forEach(t=>{const selected=t===tab;t.classList.toggle('active',selected);t.setAttribute('aria-selected',String(selected))});
+ render();
+}));
 async function loadLocal(){
- status.textContent='Conectando con Routicket Go y el catálogo local…';
+ status.textContent='Conectando con Routicket…';
  const responses=await Promise.allSettled([
   fetch('/api/local',{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}),
   fetch('/api/go-map?bbox=20.3,-87.6,21.1,-86.7',{headers:{Accept:'application/json'},cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()})
@@ -274,14 +297,11 @@ async function loadLocal(){
  }
  if(responses[1].status==='fulfilled'&&responses[1].value?.ok){
   const d=responses[1].value;
-  payload.media=(Array.isArray(d.results)?d.results:[]).map(x=>({
-   id:x.id,title:x.title,description:x.code&&x.code!==x.title?x.code:'Contenido multimedia con ubicación en el mapa Routicket',
-   image:x.image,url:x.url,content_url:x.content_url,views:x.views,lat:x.lat,lng:x.lng
-  }));
+  payload.media=(Array.isArray(d.results)?d.results:[]).map(x=>({id:x.id,title:x.title,description:x.code&&x.code!==x.title?x.code:'Contenido multimedia con ubicación en el mapa Routicket',image:x.image,url:x.url,content_url:x.content_url,views:x.views,lat:x.lat,lng:x.lng}));
   sources++;
  }
  const total=payload.places.length+payload.promos.length+payload.tours.length+payload.media.length;
- status.textContent=total?'Routicket conectado · '+payload.places.length+' lugares · '+payload.promos.length+' promociones · '+payload.tours.length+' experiencias · '+payload.media.length+' QR multimedia geolocalizados':'No pudimos recuperar contenido local en este momento. Puedes abrir Routicket Go para explorar directamente.';
+ status.textContent=total?'Routicket conectado · '+payload.places.length+' lugares · '+payload.promos.length+' promociones · '+payload.tours.length+' experiencias · '+payload.media.length+' QR multimedia':'No pudimos recuperar contenido local en este momento. Puedes abrir Routicket para explorar directamente.';
  if(!sources)status.textContent='No pudimos conectar ahora con Routicket. El resto de UrbanaTV sigue disponible.';
  render();
 }
