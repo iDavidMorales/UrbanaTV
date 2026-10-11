@@ -16,6 +16,7 @@ body{background:#09090b;color:#f7f7f4;font-family:Inter,ui-sans-serif,system-ui,
 (()=>{const b=document.getElementById('shareIssueZeroNews');if(!b)return;b.addEventListener('click',async()=>{const data={title:'Issue Zero TV invita a descubrir su experiencia de juego en línea',text:'Descubre Issue Zero TV en UrbanaTV',url:location.origin+'/noticias#issue-zero-tv-juego'};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(data.url);b.textContent='Enlace copiado ✓'}}catch(e){if(e.name!=='AbortError')b.textContent='No se pudo compartir; copia el enlace de la página.'}})})();
 </script>
 <article id="issue-zero-nuevo-capitulo" style="margin:22px 0 24px;border-color:#d5ff3660;background:linear-gradient(125deg,#1b1c1e,#111113)">
+  <img src="https://i.ytimg.com/vi/nS91OmmzmDU/oar2.jpg" alt="Portada del nuevo capítulo de Issue Zero x Kali Morales" loading="lazy" style="display:block;width:100%;max-height:420px;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin:0 0 18px;background:#080808">
   <span class="tag">SERIE · NUEVO CAPÍTULO</span>
   <h2>Issue Zero x Kali Morales: nuevo clip de la microserie</h2>
   <div style="max-width:360px;margin:18px auto;aspect-ratio:9/16;background:#080808;border:1px solid #454548;border-radius:14px;overflow:hidden">
