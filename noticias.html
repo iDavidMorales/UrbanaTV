@@ -15,6 +15,18 @@ body{background:#09090b;color:#f7f7f4;font-family:Inter,ui-sans-serif,system-ui,
 <script>
 (()=>{const b=document.getElementById('shareIssueZeroNews');if(!b)return;b.addEventListener('click',async()=>{const data={title:'Issue Zero TV invita a descubrir su experiencia de juego en línea',text:'Descubre Issue Zero TV en UrbanaTV',url:location.origin+'/noticias#issue-zero-tv-juego'};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(data.url);b.textContent='Enlace copiado ✓'}}catch(e){if(e.name!=='AbortError')b.textContent='No se pudo compartir; copia el enlace de la página.'}})})();
 </script>
+<article id="innovision-issue-zero-colaboracion" style="margin:22px 0 24px;border-color:#d5ff3660;background:linear-gradient(125deg,#1b1c1e,#111113)">
+  <span class="tag">URBANATV · PROYECTOS EN DESARROLLO</span>
+  <h2>Creando equipo: InnoVision, Issue Zero y el futuro del entretenimiento en streaming</h2>
+  <p>En UrbanaTV estamos trabajando en la app de InnoVision y también en la microserie <strong>Issue Zero</strong>. Nos entusiasma poder formar parte del camino de estos proyectos y sumar esfuerzos para que las ideas se conviertan en experiencias de contenido que conecten con nuevas audiencias.</p>
+  <p>Creemos en hacer equipo con creadores, marcas y proyectos independientes: colaborar en la creación de contenido, impulsar sus propuestas y apoyar los servicios independientes de entretenimiento que están construyendo nuevas formas de llegar al público.</p>
+  <p>Este trabajo también representa un paso para UrbanaTV hacia el área del <strong>streaming</strong>, explorando oportunidades para acompañar producciones, formatos digitales y nuevas experiencias de entretenimiento. Nos da gusto aportar nuestro trabajo y crecer junto a quienes confían en la colaboración para llevar sus proyectos más lejos.</p>
+  <p class="note">Seguimos trabajando en el desarrollo y la colaboración. Compartiremos novedades conforme haya avances que podamos anunciar.</p>
+  <p><button type="button" class="back" id="shareInnoVisionIssueZero">↗ Compartir esta historia</button></p>
+</article>
+<script>
+(()=>{const b=document.getElementById('shareInnoVisionIssueZero');if(!b)return;b.addEventListener('click',async()=>{const data={title:'UrbanaTV: InnoVision, Issue Zero y nuevos proyectos de streaming',text:'En UrbanaTV estamos trabajando en la app de InnoVision y en la microserie Issue Zero, colaborando en la creación de contenido y el impulso al entretenimiento independiente.',url:location.origin+'/noticias#innovision-issue-zero-colaboracion'};try{if(navigator.share)await navigator.share(data);else{await navigator.clipboard.writeText(data.url);b.textContent='Enlace copiado ✓'}}catch(e){if(e.name!=='AbortError')b.textContent='No se pudo compartir; copia el enlace de la página.'}})})();
+</script>
 <article id="issue-zero-nuevo-capitulo" style="margin:22px 0 24px;border-color:#d5ff3660;background:linear-gradient(125deg,#1b1c1e,#111113)">
   <img src="https://i.ytimg.com/vi/nS91OmmzmDU/oar2.jpg" alt="Portada del nuevo capítulo de Issue Zero x Kali Morales" loading="lazy" style="display:block;width:100%;max-height:420px;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin:0 0 18px;background:#080808">
   <span class="tag">SERIE · NUEVO CAPÍTULO</span>
