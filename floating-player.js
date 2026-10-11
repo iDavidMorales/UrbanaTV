@@ -114,3 +114,34 @@ fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo
  window.addEventListener('urban-video-start',()=>setTimeout(detect,300));
  window.addEventListener('urban-video-end',()=>{tick();stop()});
 })();
+/* Order the video catalog by aggregate retention, not clicks alone. */
+(()=> {
+ const root=document.getElementById('catalog');
+ if(!root)return;
+ let scores={},busy=false;
+ const sortCards=()=>{
+  if(busy)return;
+  const cards=[...root.querySelectorAll('.video-card')];
+  if(cards.length<2)return;
+  const idOf=card=>card.querySelector('img')?.src.match(/\/vi\/([\w-]{11})\//)?.[1]||'';
+  const ordered=[...cards].sort((a,b)=>{
+   const x=scores[idOf(a)]||{},y=scores[idOf(b)]||{};
+   return (Number(y.watch_seconds)||0)-(Number(x.watch_seconds)||0)||
+    (Number(y.avg_seconds)||0)-(Number(x.avg_seconds)||0)||
+    (Number(y.views)||0)-(Number(x.views)||0);
+  });
+  if(ordered.some((card,i)=>card!==cards[i])){
+   busy=true;ordered.forEach(card=>root.append(card));busy=false;
+  }
+ };
+ fetch('/api/video-analytics',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{
+  if(!d||!Array.isArray(d.videos))return;
+  scores=Object.fromEntries(d.videos.map(v=>[v.video_id,v]));
+  sortCards();
+ }).catch(()=>{});
+ let scheduled=false;
+ new MutationObserver(()=>{
+  if(scheduled)return;scheduled=true;
+  requestAnimationFrame(()=>{scheduled=false;sortCards()});
+ }).observe(root,{childList:true});
+})();
