@@ -88,31 +88,53 @@ seek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.dur
 fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo no disponible');return r.json()}).then(data=>{tracks=(Array.isArray(data.tracks)?data.tracks:[]).filter(t=>safe(t.file)&&t.title&&t.artist);status.textContent=tracks.length?tracks.length+' canciones disponibles':'Todavía no hay canciones MP3.';toggle.disabled=!tracks.length;renderList();show();if(tracks.length){const params=new URLSearchParams(location.search),sharedFile=params.get('track'),sharedId=params.get('trackId'),sharedIndex=tracks.findIndex(t=>(sharedFile&&t.file===sharedFile)||(sharedId&&stableTrackId(t)===sharedId)),found=sharedIndex>=0?sharedIndex:(!promoPlay&&saved?tracks.findIndex(t=>t.file===saved.file):-1);current=found>=0?found:0;audio.src=tracks[current].file;const resume=sharedIndex>=0?Math.max(0,Number(params.get('t')||0)):(found>=0&&Number.isFinite(Number(saved.time))?Math.max(0,Number(saved.time)):0);if(resume){audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(resume,Math.max(0,(audio.duration||resume)-1));sync();syncUrl(true)},{once:true})}status.textContent=sharedIndex>=0?'Enlace compartido: '+tracks[current].title:(resume?'Retomando donde te quedaste…':'Lista para escuchar');sync();if(sharedIndex>=0||promoPlay||!saved||saved.playing){audio.play().then(()=>{status.textContent='Reproduciendo ahora';sync();syncUrl(true)}).catch(()=>{status.textContent='La canción está lista. Pulsa ▶ para reproducir.';sync();syncUrl(true)})}else syncUrl(true)}}).catch(()=>{toggle.disabled=true;status.textContent='No se pudo cargar la biblioteca.';renderList();show()});
 })();
 
-/* Audience retention: aggregate watch-time signals for the shared YouTube viewer. */
+/* Measure actual YouTube playback state and aggregate retention without user identifiers. */
 (()=> {
- const endpoint='/api/video-analytics', modal=document.getElementById('watchModal');
+ const endpoint='/api/video-analytics',modal=document.getElementById('watchModal');
  if(!modal)return;
- let video=null,lastTick=0,timer=null,logged='';
+ let video=null,lastTick=0,timer=null,logged='',playing=false;
  function send(action,extra={}) {
   if(!video)return;
   fetch(endpoint+'?action='+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:video,title:document.getElementById('watchTitle')?.textContent||'',category:'UrbanaTV',...extra}),keepalive:true}).catch(()=>{});
  }
- function detect(){
-  const iframe=modal.querySelector('#player iframe');
-  const id=iframe?.src.match(/\/embed\/([\w-]{11})/)?.[1];
-  if(!id){stop();return}
-  if(id!==video){stop();video=id;logged='';lastTick=Date.now();if(logged!==id){send('view');logged=id}timer=setInterval(tick,10000)}
- }
  function tick(){
-  if(!video||!modal.classList.contains('open'))return;
   const now=Date.now(),elapsed=(now-lastTick)/1000;
-  if(elapsed>=8&&elapsed<=22)send('watch',{seconds:Math.min(20,Math.round(elapsed))});
+  if(video&&playing&&elapsed>=2&&elapsed<=22)send('watch',{seconds:Math.min(20,Math.round(elapsed))});
   lastTick=now;
  }
- function stop(){if(timer)clearInterval(timer);timer=null;video=null;lastTick=0}
+ function stop(){tick();if(timer)clearInterval(timer);timer=null;video=null;lastTick=0;playing=false;logged=''}
+ function subscribe(iframe){
+  const command={event:'command',func:'addEventListener',args:['onStateChange']};
+  try{iframe.contentWindow?.postMessage(JSON.stringify(command),'*')}catch(e){}
+ }
+ function detect(){
+  const iframe=modal.querySelector('#player iframe');
+  const match=iframe?.src.match(/\/embed\/([\w-]{11})/);
+  if(!match){if(!modal.classList.contains('open'))stop();return}
+  const id=match[1];
+  if(video!==id){
+   if(timer)clearInterval(timer);
+   video=id;playing=false;lastTick=Date.now();logged='';
+   let src;
+   try{src=new URL(iframe.src);if(src.searchParams.get('enablejsapi')!=='1'){src.searchParams.set('enablejsapi','1');src.searchParams.set('origin',location.origin);iframe.src=src.toString();return}}catch(e){}
+   if(logged!==id){send('view');logged=id}
+   iframe.addEventListener('load',()=>subscribe(iframe),{once:true});
+   timer=setInterval(()=>{if(playing)tick()},10000);
+   setTimeout(()=>subscribe(iframe),700);
+  }
+ }
+ window.addEventListener('message',e=>{
+  if(!/youtube(-nocookie)?\.com$/.test(new URL(e.origin).hostname))return;
+  let d=e.data;try{if(typeof d==='string')d=JSON.parse(d)}catch{return}
+  if(d?.event==='onStateChange'){
+   const next=Number(d.info)===1;
+   if(playing&&!next)tick();
+   playing=next;lastTick=Date.now();
+  }
+ });
  new MutationObserver(detect).observe(modal,{attributes:true,attributeFilter:['class'],subtree:true,childList:true});
  window.addEventListener('urban-video-start',()=>setTimeout(detect,300));
- window.addEventListener('urban-video-end',()=>{tick();stop()});
+ window.addEventListener('urban-video-end',stop);
 })();
 /* Order the video catalog by aggregate retention, not clicks alone. */
 (()=> {
