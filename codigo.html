@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0c0c0d">
+<title>Código Routicket | UrbanaTV</title>
+<meta name="description" content="Abre códigos QR de Routicket dentro de UrbanaTV.">
+<link rel="icon" href="/assets/urbanatv-app-icon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" referrerpolicy="no-referrer">
+<style>
+:root{color-scheme:dark;--bg:#0c0c0d;--panel:#181819;--line:#303033;--accent:#d5ff36;--muted:#aaa;--text:#f6f5f1}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}.top{height:70px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 max(18px,calc((100vw - 1100px)/2));border-bottom:1px solid #ffffff20;background:#0c0c0df2;position:sticky;top:0;z-index:5;backdrop-filter:blur(14px)}.brand{font-weight:950;font-size:25px;letter-spacing:-1px}.brand span{color:var(--accent)}.top a:last-child{font-size:12px;font-weight:800;color:var(--accent)}main{max-width:940px;padding:34px 20px 70px;margin:auto}.crumb{font-size:11px;font-weight:850;letter-spacing:1.6px;color:var(--accent);text-transform:uppercase}.headline{font-size:clamp(30px,5vw,52px);letter-spacing:-1.4px;line-height:1.02;margin:14px 0 9px;overflow-wrap:anywhere}.subline{color:var(--muted);font-size:13px;line-height:1.7}.panel{margin-top:24px;background:var(--panel);border:1px solid var(--line);border-radius:18px;overflow:hidden}.stage{aspect-ratio:16/9;min-height:200px;display:grid;place-items:center;background:#080809;position:relative}.stage iframe{border:0;width:100%;height:100%;position:absolute;inset:0}.stage img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}.placeholder{padding:40px;text-align:center;color:#aaa}.placeholder i{font-size:42px;color:var(--accent);margin-bottom:12px}.content{padding:22px}.content p{color:#ddd;font-size:14px;line-height:1.8;white-space:pre-wrap;overflow-wrap:anywhere}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:12px 16px;border-radius:9px;border:1px solid #555;background:transparent;color:white;font-size:12px;font-weight:850}.btn.primary{background:var(--accent);border-color:var(--accent);color:#111}.meta{display:flex;gap:10px;flex-wrap:wrap;color:#999;font-size:11px;margin-top:14px}.status{border:1px dashed #444;border-radius:12px;padding:22px;color:#aaa;font-size:13px;line-height:1.7}.note{margin-top:16px;color:#888;font-size:11px;line-height:1.7}.hidden{display:none!important}@media(max-width:600px){.top{height:60px}.brand{font-size:22px}main{padding:26px 14px 50px}.headline{font-size:34px}.content{padding:16px}.stage{min-height:180px}.actions .btn{flex:1 1 140px}}
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="/">URBANA<span>TV</span></a><a href="/"><i class="fa-solid fa-arrow-left"></i> VOLVER A URBANATV</a></header>
+<main>
+ <div class="crumb"><i class="fa-solid fa-qrcode"></i> Routicket dentro de UrbanaTV</div>
+ <h1 class="headline" id="title">Cargando código QR…</h1>
+ <p class="subline" id="subline">Estamos consultando los datos públicos del código en Routicket.</p>
+ <div id="status" class="status" role="status">Cargando contenido…</div>
+ <article id="detail" class="panel hidden">
+  <div id="stage" class="stage"></div>
+  <div class="content">
+   <p id="description" class="hidden"></p>
+   <div class="actions"><a id="openContent" class="btn primary hidden" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> ABRIR CONTENIDO ORIGINAL</a><button id="share" class="btn" type="button"><i class="fa-solid fa-share-nodes"></i> COMPARTIR CÓDIGO</button><a id="source" class="btn" href="#" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-link"></i> VER EN ROUTICKET</a></div>
+   <div id="meta" class="meta"></div>
+   <p class="note">Esta es la ficha de UrbanaTV para el código de Routicket. Algunos sitios externos pueden impedir que su contenido se reproduzca incrustado; en ese caso puedes abrirlo con el botón de contenido original.</p>
+  </div>
+ </article>
+ <div id="errorActions" class="actions hidden"><a class="btn primary" href="/"><i class="fa-solid fa-house"></i> IR A URBANATV</a><a id="retry" class="btn" href="#"><i class="fa-solid fa-rotate"></i> INTENTAR DE NUEVO</a></div>
+</main>
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const match=location.pathname.match(/^\/codigo\/(\d{1,12})\/?$/);
+ const id=match&&match[1];
+ const escText=value=>String(value||'').trim();
+ const safeExternal=value=>{try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}};
+ const ytId=value=>{try{const u=new URL(value);if(u.hostname.endsWith('youtu.be'))return u.pathname.split('/').filter(Boolean)[0]||'';if(u.hostname.includes('youtube.com'))return u.searchParams.get('v')||u.pathname.match(/\/(?:embed|shorts|live)\/([^/?]+)/)?.[1]||''}catch{}return ''};
+ const fallback=(text)=>{$('status').textContent=text;$('status').classList.remove('hidden');$('errorActions').classList.remove('hidden');$('retry').href='/codigo/'+encodeURIComponent(id||'')};
+ async function load(){
+  if(!id){fallback('El enlace no contiene un identificador de QR válido.');return}
+  try{
+   const r=await fetch('/api/code?id='+encodeURIComponent(id),{headers:{Accept:'application/json'},cache:'no-store'});
+   const data=await r.json();
+   if(!r.ok||!data.ok)throw Error(data.error||'No se pudo abrir este código QR.');
+   $('status').classList.add('hidden');$('detail').classList.remove('hidden');
+   $('title').textContent=data.title||'Código Routicket #'+id;
+   document.title=($('title').textContent+' | UrbanaTV').slice(0,150);
+   $('subline').textContent='Código #'+id+' · Contenido de Routicket abierto dentro de UrbanaTV';
+   const description=escText(data.description);
+   if(description){$('description').textContent=description;$('description').classList.remove('hidden')}
+   const stage=$('stage');stage.replaceChildren();
+   const embed=safeExternal(data.embed_url),target=safeExternal(data.content_url),yt=ytId(target);
+   if(embed){const frame=document.createElement('iframe');frame.src=embed;frame.title=data.title||'Contenido multimedia';frame.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';frame.allowFullscreen=true;frame.referrerPolicy='strict-origin-when-cross-origin';stage.append(frame)}
+   else if(target){const frame=document.createElement('iframe');frame.src=target;frame.title=data.title||'Contenido de Routicket';frame.loading='lazy';frame.referrerPolicy='strict-origin-when-cross-origin';frame.sandbox='allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation';stage.append(frame);const fallbackLink=document.createElement('a');fallbackLink.className='btn primary';fallbackLink.href=target;fallbackLink.target='_blank';fallbackLink.rel='noopener noreferrer';fallbackLink.style.cssText='position:absolute;bottom:12px;left:12px;background:#d5ff36;color:#111';fallbackLink.textContent='Si no se muestra, abrir contenido';stage.append(fallbackLink)}
+   else if(data.image){const img=document.createElement('img');img.src=safeExternal(data.image);img.alt='Imagen del código '+id;img.onerror=()=>{stage.replaceChildren();const p=document.createElement('div');p.className='placeholder';p.textContent='No hay reproductor disponible para este código.';stage.append(p)};stage.append(img)}
+   else{const p=document.createElement('div');p.className='placeholder';const icon=document.createElement('i');icon.className='fa-solid fa-qrcode';const label=document.createElement('div');label.textContent='Código Routicket #'+id; p.append(icon,label);stage.append(p)}
+   if(target){$('openContent').href=target;$('openContent').classList.remove('hidden')}
+   $('source').href=safeExternal(data.source_url)||'https://routicket.com/codigo/'+id;
+   const bits=[];if(data.author)bits.push('Por '+data.author);if(data.published)bits.push(data.published);bits.push('ID '+id);$('meta').textContent=bits.join(' · ');
+   $('share').addEventListener('click',async()=>{const payload={title:data.title||'Código Routicket #'+id,text:'Mira este código en UrbanaTV',url:location.href};try{if(navigator.share)await navigator.share(payload);else{await navigator.clipboard.writeText(location.href);$('share').innerHTML='<i class="fa-solid fa-check"></i> ENLACE COPIADO'}}catch(e){if(e.name!=='AbortError')$('share').textContent='Copia el enlace desde la barra del navegador'}});
+  }catch(e){fallback(e.message||'No se pudo cargar el código.')}
+ }
+ load();
+})();
+</script>
+</body>
+</html>
