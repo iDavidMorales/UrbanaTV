@@ -37,8 +37,10 @@ export default async function handler(req, res) {
     const results = arrayFrom(raw).map((entry, index) => {
       const item = entry?.properties ? { ...entry.properties, id: entry.id ?? entry.properties.id } : entry;
       const coords = entry?.geometry?.coordinates;
-      const lat = Number(item?.lat ?? item?.latitude ?? (Array.isArray(coords) ? coords[1] : NaN));
-      const lng = Number(item?.lng ?? item?.lon ?? item?.longitude ?? (Array.isArray(coords) ? coords[0] : NaN));
+      const rawLat = item?.lat ?? item?.latitude ?? (Array.isArray(coords) ? coords[1] : null);
+      const rawLng = item?.lng ?? item?.lon ?? item?.longitude ?? (Array.isArray(coords) ? coords[0] : null);
+      const lat = rawLat !== null && String(rawLat).trim() !== "" ? Number(rawLat) : NaN;
+      const lng = rawLng !== null && String(rawLng).trim() !== "" ? Number(rawLng) : NaN;
       const id = item?.id ?? item?.qr_id ?? item?.qrcode_id ?? index;
       return {
         id: String(id),
