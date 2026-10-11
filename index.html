@@ -79,7 +79,7 @@ async function loadGoResults(q,token){
   const existing=new Set([...list.querySelectorAll('[data-go-result]')].map(n=>n.dataset.goResult));
   d.results.slice(0,5).forEach(item=>{
    const id=String(item.id||item.url||item.title);if(existing.has(id))return;
-   const target=item.content_url||item.url;if(!/^https?:\/\//i.test(target||''))return;
+   const target=item.url||item.content_url;if(!/^https?:\/\//i.test(target||''))return;
    const b=addOption('fa-solid fa-qrcode',item.title||'Contenido de Routicket',(Number(item.views)||0).toLocaleString('es-MX')+' vistas · QR de la comunidad','ROUTICKET',()=>{window.open(target,'_blank','noopener,noreferrer');hideSuggestions()},{'data-go-result':id});
    b.dataset.goResult=id;
   });
@@ -211,7 +211,7 @@ function render(){
   if(active==='tours'&&item.price!==null&&item.price!==''&&Number.isFinite(Number(item.price)))copy.append(el('p','local-card-price','$'+Number(item.price).toLocaleString('es-MX')+' '+safeText(item.currency||'MXN')));
   if(item.expires)copy.append(el('p','', 'Vigencia: '+safeText(item.expires)));
   const a=el('a','',active==='places'?'VER LUGAR ↗':active==='promos'?'VER PROMOCIÓN ↗':active==='tours'?'DESCUBRIR EXPERIENCIA ↗':'ABRIR CONTENIDO ↗');
-  a.href=safeUrl(active==='media'?(item.content_url||item.url):item.url)||'https://routicket.com/plugins/go/';
+  a.href=safeUrl(active==='media'?(item.url||item.content_url):item.url)||'https://routicket.com/plugins/go/';
   a.target='_blank';a.rel='noopener noreferrer';copy.append(a);card.append(copy);grid.append(card);
  }
 }
