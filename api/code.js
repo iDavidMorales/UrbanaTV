@@ -11,7 +11,9 @@ const attr = (html, key) => {
  return "";
 };
 const safeUrl = value => {
- try { const url = new URL(String(value || "").replace(/&amp;/g, "&"), "https://routicket.com"); return ["https:","http:"].includes(url.protocol) ? url.href : ""; } catch { return ""; }
+ const raw = String(value || "").trim();
+ if (!raw) return "";
+ try { const url = new URL(raw.replace(/&amp;/g, "&"), "https://routicket.com"); return ["https:","http:"].includes(url.protocol) ? url.href : ""; } catch { return ""; }
 };
 const candidates = html => {
  const found = [];
@@ -41,8 +43,9 @@ export default async function handler(req, res) {
   if (!response.ok) return res.status(response.status === 404 ? 404 : 502).json({ok:false,error:response.status === 404 ? "No encontramos ese código QR en Routicket." : "Routicket no pudo abrir este código en este momento."});
   const html = await response.text();
   if (/404 Not Found|Código no encontrado|No se encontró el código/i.test(html) && html.length < 5000) return res.status(404).json({ok:false,error:"No encontramos ese código QR en Routicket."});
-  const title = attr(html,"og:title") || attr(html,"twitter:title") || decode(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "") || decode(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || "") || "Código Routicket #" + id;
-  const description = attr(html,"og:description") || attr(html,"description") || decode(html.match(/<meta[^>]+name=['"]description['"][^>]+content=['"]([^'"]*)['"]/i)?.[1] || "");
+  const title = decode(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] || "") || attr(html,"og:title") || attr(html,"twitter:title") || decode(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || "") || "Código Routicket #" + id;
+  const metaDescription = attr(html,"og:description") || attr(html,"description") || decode(html.match(/<meta[^>]+name=['"]description['"][^>]+content=['"]([^'"]*)['"]/i)?.[1] || "");
+  const description = metaDescription.length >= 35 ? metaDescription : "";
   const image = safeUrl(attr(html,"og:image") || attr(html,"twitter:image"));
   const urls = candidates(html).filter(url => !url.includes("routicket.com") && !isAsset(url) && !/google-analytics|doubleclick|facebook\.com\/tr\?/.test(url));
   let contentUrl = urls.find(url => youtubeId(url)) || urls.find(url => /vimeo\.com|spotify\.com|soundcloud\.com|tiktok\.com|facebook\.com|instagram\.com/i.test(new URL(url).hostname)) || urls[0] || "";
