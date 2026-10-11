@@ -87,3 +87,30 @@ audio.addEventListener('timeupdate',()=>{seek.value=audio.duration&&Number.isFin
 seek.addEventListener('input',()=>{if(Number.isFinite(audio.duration)&&audio.duration>0)audio.currentTime=audio.duration*Number(seek.value)/100});
 fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo no disponible');return r.json()}).then(data=>{tracks=(Array.isArray(data.tracks)?data.tracks:[]).filter(t=>safe(t.file)&&t.title&&t.artist);status.textContent=tracks.length?tracks.length+' canciones disponibles':'Todavía no hay canciones MP3.';toggle.disabled=!tracks.length;renderList();show();if(tracks.length){const params=new URLSearchParams(location.search),sharedFile=params.get('track'),sharedId=params.get('trackId'),sharedIndex=tracks.findIndex(t=>(sharedFile&&t.file===sharedFile)||(sharedId&&stableTrackId(t)===sharedId)),found=sharedIndex>=0?sharedIndex:(!promoPlay&&saved?tracks.findIndex(t=>t.file===saved.file):-1);current=found>=0?found:0;audio.src=tracks[current].file;const resume=sharedIndex>=0?Math.max(0,Number(params.get('t')||0)):(found>=0&&Number.isFinite(Number(saved.time))?Math.max(0,Number(saved.time)):0);if(resume){audio.addEventListener('loadedmetadata',()=>{audio.currentTime=Math.min(resume,Math.max(0,(audio.duration||resume)-1));sync();syncUrl(true)},{once:true})}status.textContent=sharedIndex>=0?'Enlace compartido: '+tracks[current].title:(resume?'Retomando donde te quedaste…':'Lista para escuchar');sync();if(sharedIndex>=0||promoPlay||!saved||saved.playing){audio.play().then(()=>{status.textContent='Reproduciendo ahora';sync();syncUrl(true)}).catch(()=>{status.textContent='La canción está lista. Pulsa ▶ para reproducir.';sync();syncUrl(true)})}else syncUrl(true)}}).catch(()=>{toggle.disabled=true;status.textContent='No se pudo cargar la biblioteca.';renderList();show()});
 })();
+
+/* Audience retention: aggregate watch-time signals for the shared YouTube viewer. */
+(()=> {
+ const endpoint='/api/video-analytics', modal=document.getElementById('watchModal');
+ if(!modal)return;
+ let video=null,lastTick=0,timer=null,logged='';
+ function send(action,extra={}) {
+  if(!video)return;
+  fetch(endpoint+'?action='+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({video_id:video,title:document.getElementById('watchTitle')?.textContent||'',category:'UrbanaTV',...extra}),keepalive:true}).catch(()=>{});
+ }
+ function detect(){
+  const iframe=modal.querySelector('#player iframe');
+  const id=iframe?.src.match(/\/embed\/([\w-]{11})/)?.[1];
+  if(!id){stop();return}
+  if(id!==video){stop();video=id;logged='';lastTick=Date.now();if(logged!==id){send('view');logged=id}timer=setInterval(tick,10000)}
+ }
+ function tick(){
+  if(!video||!modal.classList.contains('open'))return;
+  const now=Date.now(),elapsed=(now-lastTick)/1000;
+  if(elapsed>=8&&elapsed<=22)send('watch',{seconds:Math.min(20,Math.round(elapsed))});
+  lastTick=now;
+ }
+ function stop(){if(timer)clearInterval(timer);timer=null;video=null;lastTick=0}
+ new MutationObserver(detect).observe(modal,{attributes:true,attributeFilter:['class'],subtree:true,childList:true});
+ window.addEventListener('urban-video-start',()=>setTimeout(detect,300));
+ window.addEventListener('urban-video-end',()=>{tick();stop()});
+})();
