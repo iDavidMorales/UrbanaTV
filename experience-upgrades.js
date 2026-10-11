@@ -6,9 +6,17 @@ const toast=m=>{let n=$('uxToast');if(!n){n=document.createElement('div');n.id='
 const btn=(label,icon,cls='ux-btn')=>{const b=document.createElement('button');b.type='button';b.className=cls;b.title=label;b.setAttribute('aria-label',label);b.innerHTML='<i class="fa-solid '+icon+'" aria-hidden="true"></i>';return b};
 const share=async(title,url)=>{try{if(navigator.share)await navigator.share({title,text:title+' | UrbanaTV',url});else{await navigator.clipboard.writeText(url);toast('Enlace copiado')}}catch(e){if(e.name!=='AbortError')toast('No se pudo compartir. Copia el enlace desde la barra del navegador.')}};
 const top=btn('Volver arriba','fa-arrow-up','ux-top');top.hidden=true;top.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));document.body.append(top);addEventListener('scroll',()=>top.hidden=scrollY<500,{passive:true});
-document.addEventListener('keydown',e=>{if(e.key==='/'&&!/input|textarea|select/i.test(e.target.tagName)){const s=$('uxNewsSearch')||$('search');if(s){e.preventDefault();s.focus()}}if(e.key==='Escape'&&document.activeElement?.id==='uxNewsSearch'){const s=$('uxNewsSearch');s.value='';s.dispatchEvent(new Event('input'));s.blur()}});
+document.addEventListener('keydown',e=>{if(e.key==='/'&&!/input|textarea|select/i.test(e.target.tagName)){const s=$('search');if(s){e.preventDefault();s.focus()}}});
 if(path.includes('noticias')){
  const main=document.querySelector('main');if(!main)return;
+ // La barra de búsqueda/filtros de noticias estorba en móvil y escritorio: eliminarla incluso si otro script la inyecta.
+ const removeNewsTools=()=>main.querySelectorAll('.ux-news-tools,section[aria-label="Buscar y organizar noticias"],#uxNewsSearch').forEach(el=>{
+   const section=el.matches('section')?el:el.closest('.ux-news-tools,section[aria-label="Buscar y organizar noticias"]');
+   (section||el).remove();
+ });
+ removeNewsTools();
+ const newsToolsObserver=new MutationObserver(removeNewsTools);
+ newsToolsObserver.observe(main,{childList:true,subtree:true});
  const articles=[...main.querySelectorAll('.posts>article')];
  const saved=()=>new Set(read('urbanatv-news-saved-v1',[]));
  const id=a=>a.id||a.querySelector('h2,h3')?.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'news';
