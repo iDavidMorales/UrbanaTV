@@ -54,10 +54,25 @@ if(!input||!list)return;
 let cityResults=[],timer=0,goTimer=0,searchToken=0,selectedCity=null;
 const weatherText=code=>({0:'Despejado',1:'Mayormente despejado',2:'Parcialmente nublado',3:'Nublado',45:'Niebla',48:'Niebla',51:'Llovizna ligera',53:'Llovizna',55:'Llovizna intensa',61:'Lluvia ligera',63:'Lluvia',65:'Lluvia intensa',71:'Nieve ligera',73:'Nieve',75:'Nieve intensa',80:'Chubascos ligeros',81:'Chubascos',82:'Chubascos fuertes',95:'Tormenta eléctrica',96:'Tormenta con granizo',99:'Tormenta intensa'})[code]||'Condiciones actuales';
 const weatherIcon=code=>code===0?'☀':([1,2].includes(code)?'🌤':code===3?'☁':([45,48].includes(code)?'🌫':([51,53,55,61,63,65,80,81,82].includes(code)?'🌧':([95,96,99].includes(code)?'⛈':'🌦'))));
-function setCityName(name,region,country){$('urbanCity').textContent=[name,region].filter(Boolean).join(', ')||'Tu ciudad';$('urbanWeatherText').textContent=country||'Clima local'}
-async function loadWeather(lat,lon,name,region,country){
- setCityName(name,region,country);$('urbanWeatherText').textContent='Consultando clima…';
- try{const u=new URL('https://api.open-meteo.com/v1/forecast');u.search=new URLSearchParams({latitude:lat,longitude:lon,current:'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m',timezone:'auto'}).toString();const r=await fetch(u);if(!r.ok)throw Error();const d=await r.json(),c=d.current||{};$('urbanTemp').textContent=Math.round(c.temperature_2m)+'°';$('urbanWeatherText').textContent=weatherText(c.weather_code)+' · Sensación '+Math.round(c.apparent_temperature)+'°';$('urbanWeather').querySelector('.urban-weather-icon').textContent=weatherIcon(c.weather_code)}catch{$('urbanWeatherText').textContent='Clima no disponible';$('urbanTemp').textContent='—°'}
+function setCityName(name,region,country){$('urbanCity').textContent=[name,region].filter(Boolean).join(', ')||'Playa del Carmen, Quintana Roo';$('urbanWeatherText').textContent=country||'Clima local'}
+async function loadWeather(lat=null,lon=null,name='',region='',country=''){
+ $('urbanWeatherText').textContent='Consultando clima…';
+ try{
+  const params=new URLSearchParams();
+  if(lat!==null&&lon!==null&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))){params.set('lat',String(lat));params.set('lon',String(lon))}
+  const url='/api/weather'+(params.toString()?'?'+params.toString():'');
+  const r=await fetch(url,{headers:{Accept:'application/json'},cache:'no-store'});
+  if(!r.ok)throw Error('weather endpoint HTTP '+r.status);
+  const d=await r.json();if(!d.ok||!d.current)throw Error('weather payload incomplete');
+  setCityName(name||d.city,region||d.region,country||d.country);
+  const c=d.current,temp=Number(c.temperature_2m),feels=Number(c.apparent_temperature);
+  $('urbanTemp').textContent=Number.isFinite(temp)?Math.round(temp)+'°':'—°';
+  $('urbanWeatherText').textContent=weatherText(c.weather_code)+(Number.isFinite(feels)?' · Sensación '+Math.round(feels)+'°':'');
+  const icon=$('urbanWeather').querySelector('.urban-weather-icon');if(icon)icon.textContent=weatherIcon(c.weather_code);
+ }catch{
+  setCityName(name||'Playa del Carmen',region||'Quintana Roo',country||'México');
+  $('urbanWeatherText').textContent='Clima temporalmente no disponible';$('urbanTemp').textContent='—°';
+ }
 }
 async function geocode(q){const u=new URL('https://geocoding-api.open-meteo.com/v1/search');u.search=new URLSearchParams({name:q,count:'6',language:'es',format:'json',countryCode:'MX'}).toString();const r=await fetch(u);if(!r.ok)throw Error();const d=await r.json();return (d.results||[]).map(x=>({name:x.name,region:x.admin1||'',country:x.country||'',lat:x.latitude,lon:x.longitude,timezone:x.timezone||'',label:[x.name,x.admin1,x.country].filter(Boolean).join(', ')}))}
 function chooseCity(c){selectedCity=c;loadWeather(c.lat,c.lon,c.name,c.region,c.country);hideSuggestions();input.value='';$('urbanSmartSearchClear').hidden=true}
@@ -103,19 +118,16 @@ input.addEventListener('keydown',e=>{if(e.key==='Escape')hideSuggestions();if(e.
 $('urbanSmartSearchClear').addEventListener('click',()=>{input.value='';$('urbanSmartSearchClear').hidden=true;searchToken++;hideSuggestions();input.focus()});
 document.addEventListener('click',e=>{if(!e.target.closest('.urban-search-wrap'))hideSuggestions()});
 $('urbanLocationBtn').addEventListener('click',()=>{
- if(!navigator.geolocation){$('urbanWeatherText').textContent='Ubicación no disponible en este navegador';return}
+ if(!navigator.geolocation){$('urbanWeatherText').textContent='Geolocalización no disponible; usando ciudad aproximada';loadWeather();return}
  $('urbanWeatherText').textContent='Solicitando permiso de ubicación…';
- navigator.geolocation.getCurrentPosition(async pos=>{
-  const lat=pos.coords.latitude,lon=pos.coords.longitude;
-  try{
-   const u=new URL('https://nominatim.openstreetmap.org/reverse');u.search=new URLSearchParams({format:'jsonv2',lat:String(lat),lon:String(lon),zoom:'10',addressdetails:'1','accept-language':'es'}).toString();
-   const r=await fetch(u,{headers:{Accept:'application/json'}});if(!r.ok)throw Error();const d=await r.json(),a=d.address||{};
-   const name=a.city||a.town||a.village||a.municipality||a.county||'Tu ubicación',region=a.state||'',country=a.country||'México';
-   loadWeather(lat,lon,name,region,country);
-  }catch{loadWeather(lat,lon,'Tu ubicación','','Clima de tu ubicación')}
- },err=>{$('urbanWeatherText').textContent=err.code===1?'Permiso de ubicación denegado':'No se pudo detectar la ubicación';},{timeout:9000,maximumAge:600000,enableHighAccuracy:false});
+ navigator.geolocation.getCurrentPosition(pos=>{
+  loadWeather(pos.coords.latitude,pos.coords.longitude);
+ },err=>{
+  $('urbanWeatherText').textContent=err.code===1?'Permiso denegado; mostrando ciudad aproximada':'Ubicación no disponible; mostrando ciudad aproximada';
+  loadWeather();
+ },{timeout:9000,maximumAge:600000,enableHighAccuracy:false});
 });
-const fallback={name:'Playa del Carmen',region:'Quintana Roo',country:'México',lat:20.6296,lon:-87.0739};loadWeather(fallback.lat,fallback.lon,fallback.name,fallback.region,fallback.country);
+loadWeather();
 })();
 </script>
 
