@@ -73,21 +73,33 @@ function showSuggestions(q){list.replaceChildren();const term=q.trim().toLowerCa
  list.hidden=false;input.setAttribute('aria-expanded','true');
 }
 async function loadGoResults(q,token){
+ let status=document.getElementById('urbanGoSearchStatus');
+ if(!status){status=document.createElement('div');status.id='urbanGoSearchStatus';status.className='urban-search-hint';list.append(status)}
+ status.textContent='Buscando en Routicket…';list.hidden=false;input.setAttribute('aria-expanded','true');
  try{
-  const r=await fetch('/api/go-search?query='+encodeURIComponent(q)+'&limit=6&sort=views',{headers:{Accept:'application/json'},cache:'no-store'});
-  if(!r.ok)return;const d=await r.json();if(token!==searchToken||!Array.isArray(d.results)||!d.results.length)return;
+  const r=await fetch('/api/go-search?query='+encodeURIComponent(q)+'&limit=6&sort=views&page=1',{headers:{Accept:'application/json'},cache:'no-store'});
+  if(!r.ok)throw Error('HTTP '+r.status);
+  const d=await r.json();if(token!==searchToken)return;
+  status.remove();
+  const rows=Array.isArray(d.results)?d.results:[];
   const existing=new Set([...list.querySelectorAll('[data-go-result]')].map(n=>n.dataset.goResult));
-  d.results.slice(0,5).forEach(item=>{
+  rows.slice(0,6).forEach(item=>{
    const id=String(item.id||item.url||item.title);if(existing.has(id))return;
    const target=item.url||item.content_url;if(!/^https?:\/\//i.test(target||''))return;
-   const b=addOption('fa-solid fa-qrcode',item.title||'Contenido de Routicket',(Number(item.views)||0).toLocaleString('es-MX')+' vistas · QR de la comunidad','ROUTICKET',()=>{window.open(target,'_blank','noopener,noreferrer');hideSuggestions()},{'data-go-result':id});
+   const subtitle=[item.description,(Number(item.views)||0).toLocaleString('es-MX')+' vistas · Routicket'].filter(Boolean).join(' · ').slice(0,150);
+   const b=addOption('fa-solid fa-qrcode',item.title||'Contenido de Routicket',subtitle,'ROUTICKET',()=>{window.open(target,'_blank','noopener,noreferrer');hideSuggestions()},{'data-go-result':id});
    b.dataset.goResult=id;
   });
-  if(d.results.length){list.hidden=false;input.setAttribute('aria-expanded','true')}
- }catch{}
+  if(!rows.length&&!list.querySelector('.urban-suggestion')){const empty=document.createElement('div');empty.className='urban-search-hint';empty.textContent='No encontramos coincidencias en Routicket. Prueba con otra palabra.';list.append(empty)}
+  if(rows.length){list.hidden=false;input.setAttribute('aria-expanded','true')}
+ }catch{
+  if(token!==searchToken)return;
+  status.textContent='No se pudo conectar con Routicket. Vuelve a intentarlo en unos segundos.';
+  list.hidden=false;input.setAttribute('aria-expanded','true');
+ }
 }
 input.addEventListener('input',()=>{clearTimeout(timer);clearTimeout(goTimer);const q=input.value;$('urbanSmartSearchClear').hidden=!q;const token=++searchToken;showSuggestions(q);if(q.trim().length>=3){timer=setTimeout(async()=>{try{cityResults=await geocode(q);if(token!==searchToken)return;const term=q.trim().toLowerCase();const matched=cityResults.filter(c=>c.label.toLowerCase().includes(term));matched.slice(0,4).forEach(c=>{const b=addOption('fa-solid fa-location-dot',c.label,'Ver clima de esta ciudad','CIUDAD',()=>chooseCity(c),{'data-city-result':c.label});b.dataset.cityResult=c.label});if(matched.length){list.hidden=false;input.setAttribute('aria-expanded','true')}}catch{}},320)}if(q.trim().length>=2)goTimer=setTimeout(()=>loadGoResults(q.trim(),token),220)});
-input.addEventListener('keydown',e=>{if(e.key==='Escape')hideSuggestions();if(e.key==='Enter'){const q=input.value.trim();if(!q)return;const old=$('search');if(old){old.value=q;old.dispatchEvent(new Event('input',{bubbles:true}));$('explorar')?.scrollIntoView({behavior:'smooth'});hideSuggestions()}else location.href='/noticias?q='+encodeURIComponent(q)}});
+input.addEventListener('keydown',e=>{if(e.key==='Escape')hideSuggestions();if(e.key==='Enter'){e.preventDefault();const q=input.value.trim();if(!q)return;const token=++searchToken;clearTimeout(timer);clearTimeout(goTimer);showSuggestions(q);loadGoResults(q,token)}});
 $('urbanSmartSearchClear').addEventListener('click',()=>{input.value='';$('urbanSmartSearchClear').hidden=true;searchToken++;hideSuggestions();input.focus()});
 document.addEventListener('click',e=>{if(!e.target.closest('.urban-search-wrap'))hideSuggestions()});
 $('urbanLocationBtn').addEventListener('click',()=>{
