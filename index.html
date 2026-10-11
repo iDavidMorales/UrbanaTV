@@ -56,12 +56,14 @@ const weatherText=code=>({0:'Despejado',1:'Mayormente despejado',2:'Parcialmente
 const weatherIcon=code=>code===0?'☀':([1,2].includes(code)?'🌤':code===3?'☁':([45,48].includes(code)?'🌫':([51,53,55,61,63,65,80,81,82].includes(code)?'🌧':([95,96,99].includes(code)?'⛈':'🌦'))));
 function setCityName(name,region,country){$('urbanCity').textContent=[name,region].filter(Boolean).join(', ')||'Playa del Carmen, Quintana Roo';$('urbanWeatherText').textContent=country||'Clima local'}
 async function loadWeather(lat=null,lon=null,name='',region='',country=''){
+ const hasCoords=lat!==null&&lon!==null;
+ setCityName(name||(hasCoords?'Detectando ubicación…':'Playa del Carmen'),region||(hasCoords?'':'Quintana Roo'),country||(hasCoords?'':'México'));
  $('urbanWeatherText').textContent='Consultando clima…';
  try{
   const params=new URLSearchParams();
   if(lat!==null&&lon!==null&&Number.isFinite(Number(lat))&&Number.isFinite(Number(lon))){params.set('lat',String(lat));params.set('lon',String(lon))}
   const url='/api/weather'+(params.toString()?'?'+params.toString():'');
-  const r=await fetch(url,{headers:{Accept:'application/json'},cache:'no-store'});
+  const r=await fetch(url,{headers:{Accept:'application/json'},cache:'no-store',signal:AbortSignal.timeout(8000)});
   if(!r.ok)throw Error('weather endpoint HTTP '+r.status);
   const d=await r.json();if(!d.ok||!d.current)throw Error('weather payload incomplete');
   setCityName(name||d.city,region||d.region,country||d.country);
