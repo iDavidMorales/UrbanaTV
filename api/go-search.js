@@ -50,8 +50,8 @@ export default async function handler(req, res) {
         code: text(item?.code),
         content_url: codeUrl,
         image: safeUrl(item?.foto ?? item?.image ?? item?.image_url),
-        lat: Number.isFinite(Number(item?.lat)) ? Number(item.lat) : null,
-        lng: Number.isFinite(Number(item?.lng)) ? Number(item.lng) : null,
+        lat: text(item?.lat) && Number.isFinite(Number(item.lat)) ? Number(item.lat) : null,
+        lng: text(item?.lng) && Number.isFinite(Number(item.lng)) ? Number(item.lng) : null,
         views: Number(item?.vistoxs ?? item?.views ?? 0) || 0,
         relevance_score: Number(item?.relevance_score ?? 0) || 0,
         url
