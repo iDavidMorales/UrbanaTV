@@ -11,6 +11,18 @@ function check(raw){try{if(!raw)return null;const [payload,mac]=raw.split('.');i
 const cookie=(token)=>'urbanatv_session='+token+'; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=1209600';
 const hash=(pass)=>{const salt=randomBytes(16).toString('hex');return salt+':'+scryptSync(pass,salt,64).toString('hex')};
 function verify(pass,stored){try{const [salt,raw]=stored.split(':');const a=Buffer.from(raw,'hex'),b=scryptSync(pass,salt,64);return a.length===b.length&&timingSafeEqual(a,b)}catch{return false}}
+let postsReady=false;
+async function ensurePosts(){
+ if(postsReady)return;
+ await sql`CREATE TABLE IF NOT EXISTS urbana_tv.status_posts (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES urbana_tv.users(id) ON DELETE CASCADE,
+  body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 600),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+ )`;
+ await sql`CREATE INDEX IF NOT EXISTS status_posts_created_at_idx ON urbana_tv.status_posts(created_at DESC)`;
+ postsReady=true;
+}
 async function user(req){const id=check(parseCookies(req).urbanatv_session);if(!id)return null;const rows=await sql`SELECT id,name,email FROM urbana_tv.users WHERE id=${id} LIMIT 1`;return rows[0]||null}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','no-store');
@@ -22,6 +34,11 @@ export default async function handler(req,res){
  const u=await user(req);if(!u)return json(res,401,{error:'Inicia sesión para ver notificaciones'});
  const rows=await sql`SELECT c.id,c.video_id,c.body,c.created_at,a.name FROM urbana_tv.comments c JOIN urbana_tv.users a ON a.id=c.user_id WHERE c.user_id<> ${u.id} ORDER BY c.created_at DESC LIMIT 40`;
  return json(res,200,{notifications:rows});
+ }
+ if(req.method==='GET'&&action==='posts'){
+  await ensurePosts();
+  const rows=await sql`SELECT p.id,p.body,p.created_at,u.name FROM urbana_tv.status_posts p JOIN urbana_tv.users u ON u.id=p.user_id ORDER BY p.created_at DESC LIMIT 80`;
+  return json(res,200,{posts:rows});
  }
  if(req.method==='GET'&&action==='comments'){
  const id=String(req.query.video||'');if(!video.test(id))return json(res,400,{error:'Video no válido'});
@@ -47,6 +64,16 @@ export default async function handler(req,res){
  const {password_hash,...safe}=rows[0];res.setHeader('Set-Cookie',cookie(sign(safe.id)));return json(res,200,{user:safe});
  }
  if(action==='logout'){res.setHeader('Set-Cookie','urbanatv_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');return json(res,200,{ok:true})}
+ if(action==='post'){
+  const u=await user(req);if(!u)return json(res,401,{error:'Inicia sesión para publicar en el muro'});
+  await ensurePosts();
+  const body=String(data.body||'').trim();
+  if(body.length<1||body.length>600)return json(res,400,{error:'Escribe un estado de 1 a 600 caracteres.'});
+  const recent=await sql`SELECT id FROM urbana_tv.status_posts WHERE user_id=${u.id} AND created_at>now()-interval '15 seconds' LIMIT 1`;
+  if(recent.length)return json(res,429,{error:'Espera unos segundos antes de publicar otro estado.'});
+  const rows=await sql`INSERT INTO urbana_tv.status_posts(user_id,body) VALUES(${u.id},${body}) RETURNING id,body,created_at`;
+  return json(res,201,{post:{...rows[0],name:u.name}});
+ }
  if(action==='comment'){
  const u=await user(req);if(!u)return json(res,401,{error:'Inicia sesión para comentar'});
  const id=String(data.video||''),body=String(data.body||'').trim();
