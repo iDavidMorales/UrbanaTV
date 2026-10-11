@@ -44,18 +44,22 @@ export default async function handler(req, res) {
     id: String(p.id ?? p.place_id ?? i),
     title: str(p.titulo, p.title, p.name, p.nombre, p.business_name, p.negocio, "Lugar de la comunidad"),
     description: str(p.descripcion, p.description, p.bio, p.address, p.direccion, p.category, p.categoria),
-    image: str(p.foto, p.image, p.image_url, p.logo, p.cover),
+    image: str(p.photo, p.foto, p.image, p.image_url, p.logo, p.cover),
     url: str(p.url, p.link, p.detail_url, p.href) || "https://routicket.com/plugins/smart/",
-    category: str(p.categoria, p.category, p.tipo, p.type, "Lugar"),
-    city: str(p.ciudad, p.city, p.municipio, p.location)
-  })).filter(p => p.title && p.title !== "Lugar de la comunidad").slice(0, 8);
+    category: str(p.categoria, p.category, p.tipo, p.type, Array.isArray(p.tags) ? p.tags.join(" · ") : p.tags, "Lugar"),
+    city: str(p.ciudad, p.city, p.municipio, p.location),
+    lat: Number.isFinite(Number(p.lat)) ? Number(p.lat) : null,
+    lng: Number.isFinite(Number(p.lng)) ? Number(p.lng) : null
+  })).filter(p => p.title && p.title !== "Lugar de la comunidad").slice(0, 16);
   const promos = arr(raw.promos, ["promos", "cupones", "coupons", "items", "data"]).map((p, i) => ({
     id: String(p.id ?? p.cupon_id ?? i),
-    title: str(p.title, p.titulo, p.nombre, p.name, "Promoción local"),
-    description: str(p.body, p.descripcion, p.description, p.detalle, p.condiciones),
+    title: str(p.text, p.title, p.titulo, p.nombre, p.name, "Promoción local"),
+    description: str(p.descripcion, p.description, p.body, p.detalle, p.condiciones) === "0" ? str(p.condiciones, p.descripcion, p.description) : [str(p.descripcion, p.description, p.body, p.detalle), str(p.condiciones)].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(" · "),
     url: str(p.link, p.url, p.href, p.detail_url) || "https://routicket.com/",
-    expires: str(p.expira, p.expiration, p.fecha_fin, p.valid_until)
-  })).filter(p => p.title && p.title !== "Promoción local").slice(0, 6);
+    expires: str(p.fecha, p.expira, p.expiration, p.fecha_fin, p.valid_until),
+    image: str(p.foto_post, p.photo, p.foto, p.image, p.image_url, p.logo, p.cover),
+    city: str(p.ciudad, p.city, p.municipio, p.location)
+  })).filter(p => p.title && p.title !== "Promoción local" && (!p.expires || !/^\\d{4}-\\d{2}-\\d{2}$/.test(p.expires) || p.expires >= new Date().toISOString().slice(0, 10))).sort((a, b) => (a.expires || "9999-12-31").localeCompare(b.expires || "9999-12-31")).slice(0, 12);
   const tours = arr(raw.tours, ["tours", "items", "data"]).map((t, i) => ({
     id: String(t.id ?? i),
     title: str(t.title, t.titulo, t.name, t.nombre),
