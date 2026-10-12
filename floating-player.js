@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 const panel=$('urbanMiniPlayer'),audio=$('urbanMiniAudio');
 if(!panel||!audio)return;
-const title=$('urbanMiniTitle'),artist=$('urbanMiniArtist'),toggle=$('urbanMiniToggle'),seek=$('urbanMiniSeek'),status=$('urbanMiniStatus'),list=$('urbanTracklist'),listToggle=$('urbanTracklistToggle'),open=$('urbanMiniOpen');
+const title=$('urbanMiniTitle'),artist=$('urbanMiniArtist'),toggle=$('urbanMiniToggle'),seek=$('urbanMiniSeek'),status=$('urbanMiniStatus'),list=$('urbanTracklist'),listToggle=$('urbanTracklistToggle'),open=$('urbanMiniOpen'),volume=$('urbanMiniVolume'),mute=$('urbanMiniMute'),volumeValue=$('urbanMiniVolumeValue');
 let tracks=[],current=-1,lastSaved=0,lastUrlSync=0;const promoPlay=new URLSearchParams(location.search).get('playMusic')==='1';const STATE_KEY='urbanatv:last-track:v1';let saved=null;try{saved=JSON.parse(localStorage.getItem(STATE_KEY)||'null')}catch{};
 function persist(force=false){if(current<0||!tracks[current])return;const now=Date.now();if(!force&&now-lastSaved<2500)return;lastSaved=now;try{localStorage.setItem(STATE_KEY,JSON.stringify({file:tracks[current].file,time:Math.max(0,audio.currentTime||0),playing:!audio.paused,updated:now}))}catch{}}
 const safe=p=>typeof p==='string'&&((p.startsWith('/mp3/')&&!p.includes('..'))||(p.startsWith('https://')&&p.includes('.public.blob.vercel-storage.com/')));
@@ -12,6 +12,11 @@ function sync(){
  artist.textContent=current>=0?tracks[current].artist:'La música no es contenido, es vida';
  for(const [i,b] of [...list.querySelectorAll('button[data-index]')].entries()){b.classList.toggle('active',i===current);b.setAttribute('aria-current',i===current?'true':'false');b.querySelector('.track-indicator').innerHTML=i===current&&!audio.paused?'<i class="fa-solid fa-volume-high" aria-hidden="true"></i>':'<i class="fa-solid fa-play" aria-hidden="true"></i>'}
 }
+const VOLUME_KEY='urbanatv:player-volume:v1';let lastAudibleVolume=1;try{const stored=Number(localStorage.getItem(VOLUME_KEY));if(Number.isFinite(stored)&&localStorage.getItem(VOLUME_KEY)!==null){audio.volume=Math.max(0,Math.min(1,stored));if(audio.volume>0)lastAudibleVolume=audio.volume}}catch{};audio.volume=Number.isFinite(audio.volume)?audio.volume:1;
+function syncVolume(){const v=Math.max(0,Math.min(1,audio.volume));volume.value=String(v);volumeValue.textContent=Math.round(v*100)+'%';const silent=audio.muted||v===0;mute.innerHTML=silent?'<i class="fa-solid fa-volume-xmark" aria-hidden="true"></i>':v<.5?'<i class="fa-solid fa-volume-low" aria-hidden="true"></i>':'<i class="fa-solid fa-volume-high" aria-hidden="true"></i>';mute.setAttribute('aria-label',silent?'Activar sonido':'Silenciar');mute.title=silent?'Activar sonido':'Silenciar';panel.dataset.muted=String(silent)}
+volume.addEventListener('input',()=>{const v=Math.max(0,Math.min(1,Number(volume.value)));audio.muted=false;audio.volume=v;if(v>0)lastAudibleVolume=v;try{localStorage.setItem(VOLUME_KEY,String(v))}catch{}syncVolume()});
+mute.addEventListener('click',()=>{if(audio.muted||audio.volume===0){audio.muted=false;audio.volume=lastAudibleVolume||1;try{localStorage.setItem(VOLUME_KEY,String(audio.volume))}catch{}}else{lastAudibleVolume=audio.volume||lastAudibleVolume;audio.muted=true}syncVolume()});
+audio.addEventListener('volumechange',syncVolume);syncVolume();
 function stableTrackId(track){return String(track?.id??track?._id??track?.slug??track?.file??'')}
 function syncUrl(force=false){
  if(current<0||!tracks[current])return;
