@@ -59,7 +59,10 @@ export default async function handler(req, res) {
   const textOnly = decode(html.replace(/<script\b[\s\S]*?<\/script>/gi," ").replace(/<style\b[\s\S]*?<\/style>/gi," ").replace(/<[^>]+>/g," ")).replace(/\s+/g," ");
   const published = textOnly.match(/Publicado\s+(?:el\s+)?\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2}(?::\d{2})?)?/i)?.[0] || "";
   const author = textOnly.match(/(?:autor|creador del código)\s+([\p{L}\d .'-]{2,80}?)(?:\s+\d{2,}|detalle del código)/iu)?.[1]?.trim() || "";
-  return res.status(200).json({ok:true,id,title,description,image,content_url:contentUrl,embed_url:embedUrl,published,author,source_url:"https://routicket.com/codigo/"+id});
+  const categoryRaw = attr(html,"article:section") || attr(html,"category") || attr(html,"keywords") || textOnly.match(/(?:categor[ií]a|género|tema)s?\s*[:\-]\s*([^|.;]{2,120})/i)?.[1] || "";
+  const categories = [...new Set(categoryRaw.split(/[|,;·]/).map(value=>clean(value)).filter(value=>value.length>=2&&value.length<=50))].slice(0,8);
+  const category = categories[0] || "";
+  return res.status(200).json({ok:true,id,title,description,image,category,categories,content_url:contentUrl,embed_url:embedUrl,published,author,source_url:"https://routicket.com/codigo/"+id});
  } catch (error) {
   return res.status(502).json({ok:false,error:"No pudimos consultar Routicket. Intenta de nuevo en unos segundos."});
  }
