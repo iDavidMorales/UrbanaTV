@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
 const mail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const video = /^(?:[\\w-]{11}|\\d{1,12})$/;
+const video = /^(?:[\w-]{11}|\d{1,12})$/;
 const secret=process.env.AUTH_SECRET;
 const sql=process.env.DATABASE_URL?neon(process.env.DATABASE_URL):null;
 const json=(res,status,data)=>res.status(status).json(data);
