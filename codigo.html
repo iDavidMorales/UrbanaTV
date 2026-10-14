@@ -113,34 +113,50 @@
   section.classList.remove('hidden');grid.replaceChildren();tags.replaceChildren();
   const source=[data.title||'',data.description||''].join(' ').toLocaleLowerCase('es-MX');
   const categoryMap=[
-   ['Reguetón',['reggaeton','reguetón','urbano','perreo','dembow']],['Rap y freestyle',['rap','freestyle','hip hop','hip-hop','batalla']],['Pop',['pop','pop latino']],['Rock',['rock','metal','punk']],['Regional mexicano',['banda','corridos','regional mexicano','norteño','sierreño']],['Salsa y cumbia',['salsa','cumbia','bachata','merengue']],['Electrónica',['electrónica','electronica','house','techno','dance']],['Podcast',['podcast','entrevista','charla']],['Humor',['humor','comedia','parodia']],['Gaming',['gaming','videojuegos','gameplay']],['Deportes',['deportes','fútbol','futbol','basketball']],['Noticias',['noticias','actualidad']],['Terror y suspenso',['terror','miedo','suspenso','misterio']],['Documentales',['documental','historia','biografía','biografia']]
+   ['Terror y suspenso',['terror','suspenso','miedo','aterradora','horror','misterio','crimen']],['Documentales',['documental','historia','biografía','biografia','caso real']],['Música',['música','musica','canción','cancion','cantante','artista','album','álbum']],['Freestyle',['freestyle','rap','batalla','hip hop','hip-hop']],['Humor',['humor','comedia','parodia','chiste']],['Gaming',['gaming','videojuegos','gameplay','juego']],['Deportes',['deportes','fútbol','futbol','basketball','boxeo']],['Noticias',['noticias','actualidad','reportaje']],['Virales',['viral','tendencia','popular']],['Podcast y entrevistas',['podcast','entrevista','charla']]
   ];
   const inferred=categoryMap.filter(([label,words])=>words.some(w=>source.includes(w))).map(([label])=>label);
   const provided=Array.isArray(data.categories)?data.categories.map(String):data.category?[String(data.category)]:[];
   const categories=[...new Set([...provided,...inferred])].slice(0,5);
-  $('recommendIntro').textContent='Selección basada en “'+String(data.title||'este contenido').slice(0,100)+'”'+(categories.length?' y temas relacionados.':' y otros temas populares.');
+  $('recommendIntro').textContent='Recomendaciones relacionadas con “'+String(data.title||'este contenido').slice(0,100)+'”'+(categories.length?' y sus categorías.':' y otros temas de UrbanaTV.');
   for(const category of categories){const chip=document.createElement('span');chip.className='recommend-tag';chip.textContent=category;tags.append(chip)}
   try{
-   const response=await fetch('/api/tracks',{headers:{Accept:'application/json'},cache:'no-store'});
-   const payload=await response.json();if(!response.ok)throw Error(payload.error||'No se pudo consultar la música');
-   const tracks=Array.isArray(payload.tracks)?payload.tracks:[];
-   const stop=new Set(['esta','este','para','como','desde','hasta','sobre','entre','cuando','donde','porque','cancion','canción','video','oficial','music','audio','the','and','with','por','una','uno','los','las','del','con','que','de','la','el','en','un','y','a']);
+   let catalog=[];
+   try{
+    const home=await fetch('/',{headers:{Accept:'text/html'},cache:'no-store'});
+    if(home.ok){
+     const sourceHtml=await home.text();
+     const seedMatch=sourceHtml.match(/const seed=(\[[\s\S]*?\]);\s*const key=/);
+     if(seedMatch){
+      const re=/\{id:'([^']+)',title:'([^']*)',artist:'([^']*)',category:'([^']*)',start:(\d+)(?:,description:'([^']*)')?\}/g;
+      for(const m of seedMatch[1].matchAll(re))catalog.push({id:m[1],title:m[2],artist:m[3],category:m[4],start:Number(m[5]),description:m[6]||''});
+     }
+    }
+   }catch{}
+   try{
+    const saved=JSON.parse(localStorage.getItem('urbanatv-videos-v1')||'[]');
+    if(Array.isArray(saved))catalog.push(...saved.filter(v=>v&&/^[\w-]{11}$/.test(String(v.id||''))&&v.title));
+   }catch{}
+   const unique=new Map();for(const v of catalog){if(/^[\w-]{11}$/.test(String(v.id||'')))unique.set(v.id,v)}
+   catalog=[...unique.values()];
+   const stop=new Set(['esta','este','para','como','desde','hasta','sobre','entre','cuando','donde','porque','cancion','canción','video','oficial','music','audio','the','and','with','por','una','uno','los','las','del','con','que','de','la','el','en','un','y','a','sus','más','vidas','peliculas','películas','completas','español','latino']);
    const words=source.normalize('NFD').replace(/[\u0300-\u036f]/g,'').match(/[a-z0-9]{3,}/g)||[];
    const queryWords=[...new Set(words.filter(w=>!stop.has(w)))];
-   const ranked=tracks.map((track,index)=>{
-    const text=[track.title,track.artist,track.description].join(' ').toLocaleLowerCase('es-MX').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+   const ranked=catalog.map((video,index)=>{
+    const text=[video.title,video.artist,video.category,video.description].join(' ').toLocaleLowerCase('es-MX').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     let score=queryWords.reduce((n,w)=>n+(text.includes(w)?2:0),0);
-    for(const cat of categories){const key=cat.toLocaleLowerCase('es-MX').normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(key.split(/\s+/).some(w=>w.length>3&&text.includes(w)))score+=3}
-    return {track,index,score}
+    for(const cat of categories){const normalized=cat.toLocaleLowerCase('es-MX').normalize('NFD').replace(/[\u0300-\u036f]/g,'');if(normalized.split(/\s+/).some(w=>w.length>3&&text.includes(w)))score+=3}
+    if(String(video.title||'').toLowerCase()==String(data.title||'').toLowerCase())score-=100;
+    return {video,index,score}
    }).sort((a,b)=>b.score-a.score||a.index-b.index).slice(0,6);
-   if(!ranked.length){const p=document.createElement('p');p.textContent='Todavía no hay más canciones disponibles para recomendar.';grid.append(p);return}
-   for(const item of ranked){const track=item.track,card=document.createElement('article');card.className='recommend-card';
-    const cover=safeExternal(track.cover||'');if(cover){const img=document.createElement('img');img.loading='lazy';img.src=cover;img.alt='Portada de '+String(track.title||'canción');card.append(img)}
-    const body=document.createElement('div');body.className='recommend-card-body';const title=document.createElement('h3');title.textContent=track.title||'Canción de UrbanaTV';const artist=document.createElement('p');artist.textContent=track.artist||'Artista independiente';body.append(title,artist);
-    const audioUrl=safeExternal(track.file||'');if(audioUrl){const audio=document.createElement('audio');audio.controls=true;audio.preload='none';audio.src=audioUrl;audio.setAttribute('aria-label','Reproducir '+String(track.title||'canción'));body.append(audio)}
-    card.append(body);grid.append(card)
+   if(!ranked.length){const p=document.createElement('p');p.textContent='Todavía no hay videos relacionados disponibles. Puedes explorar el catálogo de UrbanaTV.';grid.append(p);return}
+   for(const item of ranked){
+    const video=item.video,card=document.createElement('article');card.className='recommend-card';
+    const link=document.createElement('a');const slug=String(video.title||'video').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65);link.href='/videos/'+slug+'-'+video.id;link.setAttribute('aria-label','Ver '+String(video.title||'video'));
+    const img=document.createElement('img');img.loading='lazy';img.src='https://img.youtube.com/vi/'+video.id+'/hqdefault.jpg';img.alt='Miniatura de '+String(video.title||'video');img.onerror=()=>{img.style.display='none'};link.append(img);card.append(link);
+    const body=document.createElement('div');body.className='recommend-card-body';const title=document.createElement('h3');title.textContent=video.title||'Video de UrbanaTV';const artist=document.createElement('p');artist.textContent=[video.artist,video.category].filter(Boolean).join(' · ');const open=document.createElement('a');open.className='btn primary';open.href=link.href;open.textContent='VER VIDEO';body.append(title,artist,open);card.append(body);grid.append(card)
    }
-  }catch(e){const p=document.createElement('p');p.textContent='No se pudieron cargar las sugerencias en este momento. Puedes explorar la biblioteca completa.';grid.append(p)}
+  }catch(e){const p=document.createElement('p');p.textContent='No se pudieron cargar las sugerencias en este momento.';grid.append(p)}
  }
  const fallback=(text)=>{$('status').textContent=text;$('status').classList.remove('hidden');$('errorActions').classList.remove('hidden');$('retry').href='/codigo/'+encodeURIComponent(id||'')};
  async function load(){
