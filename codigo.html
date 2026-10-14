@@ -126,7 +126,7 @@
     const home=await fetch('/',{headers:{Accept:'text/html'},cache:'no-store'});
     if(home.ok){
      const sourceHtml=await home.text();
-     const seedMatch=sourceHtml.match(/const seed=(\[[\s\S]*?\]);\s*const key=/);
+     const seedMatch=sourceHtml.match(/const seed=(\[[\s\S]*?\]);/);
      if(seedMatch){
       const re=/\{id:'([^']+)',title:'([^']*)',artist:'([^']*)',category:'([^']*)',start:(\d+)(?:,description:'([^']*)')?\}/g;
       for(const m of seedMatch[1].matchAll(re))catalog.push({id:m[1],title:m[2],artist:m[3],category:m[4],start:Number(m[5]),description:m[6]||''});
