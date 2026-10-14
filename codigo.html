@@ -30,6 +30,25 @@
    <p class="note">Esta es la ficha de UrbanaTV para el código de Routicket. Algunos sitios externos pueden impedir que su contenido se reproduzca incrustado; en ese caso puedes abrirlo con el botón de contenido original.</p>
   </div>
  </article>
+ <section id="musicActions" class="community hidden" aria-label="Acciones de la canción">
+  <h2>Tu música, a tu manera</h2><p id="musicActionStatus">Guarda esta canción para volver a escucharla cuando quieras.</p>
+  <div class="actions">
+   <button id="favoriteBtn" class="btn" type="button"><i class="fa-regular fa-heart"></i> FAVORITOS</button>
+   <button id="savedBtn" class="btn" type="button"><i class="fa-regular fa-bookmark"></i> GUARDAR</button>
+   <button id="laterBtn" class="btn" type="button"><i class="fa-regular fa-clock"></i> VER DESPUÉS</button>
+   <button id="shareTrackBtn" class="btn primary" type="button"><i class="fa-solid fa-share-nodes"></i> COMPARTIR</button>
+  </div>
+  <div class="social-links" aria-label="Compartir en redes">
+   <a id="shareWhatsApp" class="btn" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+   <a id="shareFacebook" class="btn" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-facebook"></i> Facebook</a>
+   <a id="shareX" class="btn" target="_blank" rel="noopener noreferrer"><i class="fa-brands fa-x-twitter"></i> X</a>
+  </div>
+ </section>
+ <section id="commentsPanel" class="community hidden" aria-label="Comentarios de la canción">
+  <h2><i class="fa-regular fa-comments"></i> Comentarios</h2><p id="commentStatus">Inicia sesión para participar en la conversación.</p>
+  <form id="commentForm"><textarea id="commentBody" maxlength="1500" placeholder="¿Qué te pareció esta canción?" required minlength="2"></textarea><div class="actions"><button id="commentSubmit" class="btn primary" type="submit"><i class="fa-solid fa-paper-plane"></i> PUBLICAR COMENTARIO</button><button id="commentLogin" class="btn" type="button">INICIAR SESIÓN / REGISTRARSE</button></div></form>
+  <div id="commentList" class="comment-list" aria-live="polite"></div>
+ </section>
  <div id="errorActions" class="actions hidden"><a class="btn primary" href="/"><i class="fa-solid fa-house"></i> IR A URBANATV</a><a id="retry" class="btn" href="#"><i class="fa-solid fa-rotate"></i> INTENTAR DE NUEVO</a></div>
 </main>
 <script>
