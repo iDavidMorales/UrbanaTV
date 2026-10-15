@@ -399,7 +399,7 @@ async function loadRouticketContent(){
   function youtubeIdFrom(value,depth=0){
    if(depth>4||value==null)return '';
    if(typeof value==='object'){
-    for(const [k,v] of Object.entries(value)){const found=youtubeIdFrom(v,depth+1);if(found)return found}
+    for(const [k,v] of Object.entries(value)){if(/(?:youtube|video|youtu|yt)[_-]?id/i.test(k)&&/^[a-zA-Z0-9_-]{11}$/.test(String(v||'')))return String(v);const found=youtubeIdFrom(v,depth+1);if(found)return found}
     return '';
    }
    const raw=String(value).trim();if(!raw)return '';
@@ -418,7 +418,6 @@ async function loadRouticketContent(){
    }catch(e){}
    const thumb=decoded.match(/(?:i\.|img\.)ytimg\.com\/(?:vi|vi_webp|vi\_webp)\/([a-zA-Z0-9_-]{11})/i);
    if(thumb)return thumb[1];
-   if(/^[a-zA-Z0-9_-]{11}$/.test(decoded))return decoded;
    return '';
   }
   routicketVideos=source.map(p=>{
