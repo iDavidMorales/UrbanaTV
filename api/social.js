@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { randomBytes, scryptSync, timingSafeEqual, createHmac } from 'node:crypto';
 const mail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const video = /^(?:[\w-]{11}|\d{1,12})$/;
+const video = /^[A-Za-z0-9_-]{1,160}$/;
 const secret=process.env.AUTH_SECRET;
 const sql=process.env.DATABASE_URL?neon(process.env.DATABASE_URL):null;
 const json=(res,status,data)=>res.status(status).json(data);
@@ -78,7 +78,7 @@ export default async function handler(req,res){
  const u=await user(req);if(!u)return json(res,401,{error:'Inicia sesión para comentar'});
  const id=String(data.video||''),body=String(data.body||'').trim();
  if(!video.test(id)||body.length<2||body.length>1500)return json(res,400,{error:'Comentario inválido (2 a 1500 caracteres).'});
- const recent=await sql`SELECT id FROM urbana_tv.comments WHERE user_id=${u.id} AND created_at>now()-interval '20 seconds' LIMIT 1`;
+ const recent=await sql`SELECT id FROM urbana_tv.comments WHERE user_id=${u.id} AND video_id=${id} AND created_at>now()-interval '20 seconds' LIMIT 1`;
  if(recent.length)return json(res,429,{error:'Espera unos segundos antes de publicar otro comentario.'});
  await sql`INSERT INTO urbana_tv.comments(video_id,user_id,body) VALUES(${id},${u.id},${body})`;return json(res,201,{ok:true});
  }
