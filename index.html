@@ -403,12 +403,12 @@ async function loadRouticketContent(){
     return '';
    }
    const raw=String(value).trim();if(!raw)return '';
-   const decoded=raw.replace(/&amp;/gi,'&').replace(/\\u0026/gi,'&');
-   const direct=decoded.match(/(?:youtube(?:-nocookie)?\\.com\/(?:[^\\s"'<>]*?[?&]v=|embed\/|v\/|shorts\/|live\/)|youtu\\.be\/)([a-zA-Z0-9_-]{11})/i);
+   const decoded=raw.replace(/&amp;/gi,'&').replace(/\u0026/gi,'&');
+   const direct=decoded.match(/(?:youtube(?:-nocookie)?\.com\/(?:[^\s"'<>]*?[?&]v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i);
    if(direct)return direct[1];
    try{
     const u=new URL(decoded.startsWith('//')?'https:'+decoded:decoded);
-    const host=u.hostname.toLowerCase().replace(/^www\\./,'').replace(/^m\\./,'');
+    const host=u.hostname.toLowerCase().replace(/^www\./,'').replace(/^m\./,'');
     if(host==='youtu.be'){const id=u.pathname.split('/').filter(Boolean)[0];if(/^[a-zA-Z0-9_-]{11}$/.test(id||''))return id}
     if(host==='youtube.com'||host==='youtube-nocookie.com'){
      const id=u.searchParams.get('v')||u.pathname.split('/').filter(Boolean).find((part,i,arr)=>['embed','shorts','live','v'].includes(arr[i-1]));
@@ -416,7 +416,7 @@ async function loadRouticketContent(){
     }
     for(const val of u.searchParams.values()){const found=youtubeIdFrom(val,depth+1);if(found)return found}
    }catch(e){}
-   const thumb=decoded.match(/(?:i\\.|img\\.)ytimg\\.com\/(?:vi|vi_webp|vi\\_webp)\/([a-zA-Z0-9_-]{11})/i);
+   const thumb=decoded.match(/(?:i\.|img\.)ytimg\.com\/(?:vi|vi_webp|vi\_webp)\/([a-zA-Z0-9_-]{11})/i);
    if(thumb)return thumb[1];
    if(/^[a-zA-Z0-9_-]{11}$/.test(decoded))return decoded;
    return '';
@@ -430,8 +430,8 @@ async function loadRouticketContent(){
    const youtubeId=youtubeIdFrom(p)||youtubeIdFrom(image);
    if(!youtubeId||seen.has(youtubeId))return null;
    const youtubeUrl='https://www.youtube.com/watch?v='+youtubeId;
-   const safeImage=/^https?:\\/\\//i.test(image)?image.replace(/^http:\\/\\//i,'https://'):'https://i.ytimg.com/vi/'+youtubeId+'/hqdefault.jpg';
-   const routicketUrl=[p?.url,p?.link,p?.permalink].map(x=>String(x||'').trim()).find(x=>/^https?:\\/\\/(?:www\\.)?routicket\\.com\\//i.test(x))||'https://routicket.com/negocios/routicket-play/';
+   const safeImage=/^https?:\/\//i.test(image)?image.replace(/^http:\/\//i,'https://'):'https://i.ytimg.com/vi/'+youtubeId+'/hqdefault.jpg';
+   const routicketUrl=[p?.url,p?.link,p?.permalink].map(x=>String(x||'').trim()).find(x=>/^https?:\/\/(?:www\.)?routicket\.com\//i.test(x))||'https://routicket.com/negocios/routicket-play/';
    seen.add(youtubeId);
    return {id:'rtk-'+id,title,artist:'Routicket Play',category:String(p?.category_name||p?.category||p?.categoria||'Multimedia'),description:String(p?.description||p?.descripcion||''),start:0,source:'Routicket Play',youtubeId,externalUrl:youtubeUrl,routicketUrl,thumbnail:safeImage,views:Number(p?.views||p?.vistas)||0,siteOrder:seen.size,featured:false};
   }).filter(Boolean).sort((a,b)=>b.views-a.views);
