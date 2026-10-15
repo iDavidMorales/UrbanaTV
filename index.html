@@ -396,28 +396,54 @@ async function loadRouticketContent(){
   const payload=await response.json();const source=payload?.data?.productos;
   if(!payload?.success||!Array.isArray(source))throw new Error('Formato de catálogo no válido');
   const seen=new Set();
+  function youtubeIdFrom(value,depth=0){
+   if(depth>4||value==null)return '';
+   if(typeof value==='object'){
+    for(const [k,v] of Object.entries(value)){const found=youtubeIdFrom(v,depth+1);if(found)return found}
+    return '';
+   }
+   const raw=String(value).trim();if(!raw)return '';
+   const decoded=raw.replace(/&amp;/gi,'&').replace(/\\\\u0026/gi,'&');
+   const direct=decoded.match(/(?:youtube(?:-nocookie)?\\.com\/(?:[^\\s"'<>]*?[?&]v=|embed\/|v\/|shorts\/|live\/)|youtu\\.be\/)([a-zA-Z0-9_-]{11})/i);
+   if(direct)return direct[1];
+   try{
+    const u=new URL(decoded.startsWith('//')?'https:'+decoded:decoded);
+    const host=u.hostname.toLowerCase().replace(/^www\\./,'').replace(/^m\\./,'');
+    if(host==='youtu.be'){const id=u.pathname.split('/').filter(Boolean)[0];if(/^[a-zA-Z0-9_-]{11}$/.test(id||''))return id}
+    if(host==='youtube.com'||host==='youtube-nocookie.com'){
+     const id=u.searchParams.get('v')||u.pathname.split('/').filter(Boolean).find((part,i,arr)=>['embed','shorts','live','v'].includes(arr[i-1]));
+     if(/^[a-zA-Z0-9_-]{11}$/.test(id||''))return id;
+    }
+    for(const val of u.searchParams.values()){const found=youtubeIdFrom(val,depth+1);if(found)return found}
+   }catch(e){}
+   const thumb=decoded.match(/(?:i\\.|img\\.)ytimg\\.com\/(?:vi|vi_webp|vi\\_webp)\/([a-zA-Z0-9_-]{11})/i);
+   if(thumb)return thumb[1];
+   if(/^[a-zA-Z0-9_-]{11}$/.test(decoded))return decoded;
+   return '';
+  }
   routicketVideos=source.map(p=>{
-   const title=String(p?.name||'').trim();const id=String(p?.id||'');const image=String(p?.image||p?.fallbackImage||'');
-   const mediaUrl=String(p?.videoUrl||p?.video||'');
-   const looksLikeMedia=/i\.ytimg\.com|img\.youtube\.com/i.test(image)||/\b(video|videoclip|official video|audio|music|musica|música|cancion|canción|clip|capitulo|capítulo|episode|trailer|concert|concierto|freestyle|mix|lyrics|live)\b/i.test(title);
-   if(!id||!title||title==='0'||/just a moment|captcha|cloudflare/i.test(title)||!looksLikeMedia||seen.has(id))return null;
-   const sourceUrl=new URL(String(p?.url||mediaUrl||('/plugins/movies/reproductor.php?id='+encodeURIComponent(id))), 'https://routicket.com').toString();
-   if(!/^https:\/\/routicket\.com\//i.test(sourceUrl)&&!/^https:\/\//i.test(sourceUrl))return null;
-   // Routicket Element 3 carga la URL de origen dentro del reproductor y evita depender de CORS del feed para reproducirla.
-   const page='https://routicket.com/widget/element3.php?url='+encodeURIComponent(sourceUrl);
-   const safeImage=/^https?:\/\//i.test(image)?image.replace(/^http:\/\//i,'https://'):'https://i.imgur.com/Nr5WJMX.png';
-   seen.add(id);
-   return {id:'rtk-'+id,title,artist:'Routicket Play',category:String(p?.category_name||'Multimedia'),description:String(p?.description||''),start:0,source:'Routicket Play',routicketEmbed:page,externalUrl:sourceUrl,thumbnail:safeImage,views:Number(p?.views)||0,siteOrder:seen.size,featured:false};
+   const title=String(p?.name||p?.title||p?.titulo||'').trim();
+   const id=String(p?.id||p?.product_id||'').trim();
+   const image=String(p?.image||p?.foto||p?.thumbnail||p?.fallbackImage||'').trim();
+   if(!id||!title||title==='0'||/just a moment|captcha|cloudflare/i.test(title))return null;
+   // Revisa todos los campos, incluso URLs anidadas/codificadas, para rescatar links de YouTube mal formados.
+   const youtubeId=youtubeIdFrom(p)||youtubeIdFrom(image);
+   if(!youtubeId||seen.has(youtubeId))return null;
+   const youtubeUrl='https://www.youtube.com/watch?v='+youtubeId;
+   const safeImage=/^https?:\\/\\//i.test(image)?image.replace(/^http:\\/\\//i,'https://'):'https://i.ytimg.com/vi/'+youtubeId+'/hqdefault.jpg';
+   const routicketUrl=[p?.url,p?.link,p?.permalink].map(x=>String(x||'').trim()).find(x=>/^https?:\\/\\/(?:www\\.)?routicket\\.com\\//i.test(x))||'https://routicket.com/negocios/routicket-play/';
+   seen.add(youtubeId);
+   return {id:'rtk-'+id,title,artist:'Routicket Play',category:String(p?.category_name||p?.category||p?.categoria||'Multimedia'),description:String(p?.description||p?.descripcion||''),start:0,source:'Routicket Play',youtubeId,externalUrl:youtubeUrl,routicketUrl,thumbnail:safeImage,views:Number(p?.views||p?.vistas)||0,siteOrder:seen.size,featured:false};
   }).filter(Boolean).sort((a,b)=>b.views-a.views);
-  if(!routicketVideos.length)throw new Error('El feed no contiene elementos multimedia reconocibles');
+  if(!routicketVideos.length)throw new Error('No se encontraron URLs o IDs de YouTube válidos en el feed');
   routicketVisibleCount=24;renderRouticketFeed();
  }catch(error){
-  root.replaceChildren();const box=document.createElement('div');box.className='news-loading';box.style.gridColumn='1 / -1';box.textContent='No pudimos cargar el feed de Routicket ahora. ';
+  root.replaceChildren();const box=document.createElement('div');box.className='news-loading';box.style.gridColumn='1 / -1';box.textContent='No pudimos cargar los videos de Routicket ahora. ';
   const retry=document.createElement('button');retry.type='button';retry.className='outline';retry.textContent='REINTENTAR';retry.addEventListener('click',loadRouticketContent);box.append(retry);root.append(box);
-  const status=$('routicketFeedStatus');if(status)status.textContent='Si el feed bloquea solicitudes externas, habrá que habilitar CORS o conectarlo mediante un endpoint proxy.';
+  const status=$('routicketFeedStatus');if(status)status.textContent='El catálogo necesita devolver URLs o IDs de YouTube válidos; los enlaces se normalizan antes de reproducir.';
  }
 }
-$('routicketLoadMore')?.addEventListener('click',()=>{routicketVisibleCount+=24;renderRouticketFeed()});
+$('routicketLoadMore')?.addEventListener('click',()=>{routicketVisibleCount+=24;renderRouticketFeed()});$('routicketLoadMore')?.addEventListener('click',()=>{routicketVisibleCount+=24;renderRouticketFeed()});
 async function loadIssueZeroContent(){
  const root=$('issueZeroCatalog');if(!root)return;
  try{
@@ -471,7 +497,7 @@ function closeModal(id){$(id).classList.remove('open');if(id==='watchModal'){$(i
 const slugify=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,65);const videoPath=v=>'/videos/'+slugify(v.title)+'-'+v.id;
 function setShareLinks(v){const url=new URL(videoPath(v),location.origin);const link=encodeURIComponent(url.toString()),message=encodeURIComponent(v.title+' — UrbanaTV');$('shareWhatsapp').href='https://api.whatsapp.com/send?text='+message+'%20'+link;$('shareFacebook').href='https://www.facebook.com/sharer/sharer.php?u='+link;$('shareX').href='https://twitter.com/intent/tweet?text='+message+'&url='+link;$('shareTelegram').href='https://t.me/share/url?url='+link+'&text='+message}
 const watchMinimizeButton=$('watchMinimize');watchMinimizeButton?.addEventListener('click',()=>{const modal=$('watchModal'),minimized=modal.classList.toggle('minimized');watchMinimizeButton.setAttribute('aria-label',minimized?'Restaurar reproductor':'Minimizar reproductor');watchMinimizeButton.title=minimized?'Restaurar':'Minimizar';watchMinimizeButton.innerHTML=minimized?'<i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i>':'<i class="fa-solid fa-minus" aria-hidden="true"></i>';modal.setAttribute('aria-label',minimized?'Reproductor de video minimizado':'Reproductor de video');if(minimized)document.body.classList.remove('no-scroll');else document.body.classList.add('no-scroll')});
-function watch(v){if(location.pathname!==videoPath(v)){history.pushState({video:v.id},'',videoPath(v))}window.dispatchEvent(new Event('urban-video-start'));current=v;setShareLinks(v);const standalone=$('openStandaloneVideo');if(standalone)standalone.href='/ver?url='+encodeURIComponent(v.routicketEmbed||v.videoUrl||v.externalUrl||('https://www.youtube.com/watch?v='+v.id));$('watchTitle').textContent=v.title;const mediaUrl=v.videoUrl||v.externalUrl||'';const isDirectVideo=/\.(mp4|webm|mov)(\?|#|$)/i.test(mediaUrl);if(isDirectVideo){const video=document.createElement('video');video.controls=true;video.autoplay=true;video.playsInline=true;video.preload='metadata';video.src=mediaUrl;video.style.width='100%';video.style.height='100%';video.style.background='#000';video.addEventListener('error',()=>{const msg=document.createElement('p');msg.style.cssText='padding:20px;color:#fff';msg.textContent='No se pudo reproducir este video. Puedes abrirlo directamente en Issue Zero TV.';const link=document.createElement('a');link.href='https://issue-zero-tv.vercel.app';link.target='_blank';link.rel='noopener noreferrer';link.textContent=' Abrir Issue Zero TV ↗';link.style.color='#d5ff36';msg.append(link);$('player').replaceChildren(msg)});$('player').replaceChildren(video);video.play().catch(()=>{})}else{const iframe=document.createElement('iframe');if(v.routicketEmbed){iframe.src=v.routicketEmbed;iframe.title='Contenido de Routicket Play: '+v.title}else{const src=new URL('https://www.youtube-nocookie.com/embed/'+v.id);src.searchParams.set('autoplay','1');src.searchParams.set('rel','0');if(v.start)src.searchParams.set('start',String(v.start));iframe.src=src.toString();iframe.title='Video: '+v.title}iframe.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';$('player').replaceChildren(iframe)}openModal('watchModal');updateVideoRating();loadComments(v.id);try{localStorage.setItem('urbanatv-last-viewed',v.id)}catch(e){}}
+function watch(v){if(location.pathname!==videoPath(v)){history.pushState({video:v.id},'',videoPath(v))}window.dispatchEvent(new Event('urban-video-start'));current=v;setShareLinks(v);const standalone=$('openStandaloneVideo');if(standalone)standalone.href='/ver?url='+encodeURIComponent(v.routicketEmbed||v.videoUrl||v.externalUrl||('https://www.youtube.com/watch?v='+(v.youtubeId||v.id)));$('watchTitle').textContent=v.title;const mediaUrl=v.videoUrl||v.externalUrl||'';const isDirectVideo=/\.(mp4|webm|mov)(\?|#|$)/i.test(mediaUrl);if(isDirectVideo){const video=document.createElement('video');video.controls=true;video.autoplay=true;video.playsInline=true;video.preload='metadata';video.src=mediaUrl;video.style.width='100%';video.style.height='100%';video.style.background='#000';video.addEventListener('error',()=>{const msg=document.createElement('p');msg.style.cssText='padding:20px;color:#fff';msg.textContent='No se pudo reproducir este video. Puedes abrirlo directamente en Issue Zero TV.';const link=document.createElement('a');link.href='https://issue-zero-tv.vercel.app';link.target='_blank';link.rel='noopener noreferrer';link.textContent=' Abrir Issue Zero TV ↗';link.style.color='#d5ff36';msg.append(link);$('player').replaceChildren(msg)});$('player').replaceChildren(video);video.play().catch(()=>{})}else{const iframe=document.createElement('iframe');if(v.routicketEmbed){iframe.src=v.routicketEmbed;iframe.title='Contenido de Routicket Play: '+v.title}else{const src=new URL('https://www.youtube-nocookie.com/embed/'+(v.youtubeId||v.id));src.searchParams.set('autoplay','1');src.searchParams.set('rel','0');if(v.start)src.searchParams.set('start',String(v.start));iframe.src=src.toString();iframe.title='Video: '+v.title}iframe.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';iframe.allowFullscreen=true;iframe.referrerPolicy='strict-origin-when-cross-origin';$('player').replaceChildren(iframe)}openModal('watchModal');updateVideoRating();loadComments(v.id);try{localStorage.setItem('urbanatv-last-viewed',v.id)}catch(e){}}
 
 const ratingKey='urbanatv-video-ratings-v1';
 function readRatings(){try{return JSON.parse(localStorage.getItem(ratingKey)||'{}')}catch{return {}}}
