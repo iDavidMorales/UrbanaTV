@@ -401,11 +401,13 @@ async function loadRouticketContent(){
    const mediaUrl=String(p?.videoUrl||p?.video||'');
    const looksLikeMedia=/i\.ytimg\.com|img\.youtube\.com/i.test(image)||/\b(video|videoclip|official video|audio|music|musica|música|cancion|canción|clip|capitulo|capítulo|episode|trailer|concert|concierto|freestyle|mix|lyrics|live)\b/i.test(title);
    if(!id||!title||title==='0'||/just a moment|captcha|cloudflare/i.test(title)||!looksLikeMedia||seen.has(id))return null;
-   const page=new URL(String(p?.url||('/plugins/movies/reproductor.php?id='+encodeURIComponent(id))), 'https://routicket.com').toString();
-   if(!/^https:\/\/routicket\.com\//i.test(page))return null;
+   const sourceUrl=new URL(String(p?.url||mediaUrl||('/plugins/movies/reproductor.php?id='+encodeURIComponent(id))), 'https://routicket.com').toString();
+   if(!/^https:\/\/routicket\.com\//i.test(sourceUrl)&&!/^https:\/\//i.test(sourceUrl))return null;
+   // Routicket Element 3 carga la URL de origen dentro del reproductor y evita depender de CORS del feed para reproducirla.
+   const page='https://routicket.com/widget/element3.php?url='+encodeURIComponent(sourceUrl);
    const safeImage=/^https?:\/\//i.test(image)?image.replace(/^http:\/\//i,'https://'):'https://i.imgur.com/Nr5WJMX.png';
    seen.add(id);
-   return {id:'rtk-'+id,title,artist:'Routicket Play',category:String(p?.category_name||'Multimedia'),description:String(p?.description||''),start:0,source:'Routicket Play',routicketEmbed:page,externalUrl:page,thumbnail:safeImage,views:Number(p?.views)||0,siteOrder:seen.size,featured:false};
+   return {id:'rtk-'+id,title,artist:'Routicket Play',category:String(p?.category_name||'Multimedia'),description:String(p?.description||''),start:0,source:'Routicket Play',routicketEmbed:page,externalUrl:sourceUrl,thumbnail:safeImage,views:Number(p?.views)||0,siteOrder:seen.size,featured:false};
   }).filter(Boolean).sort((a,b)=>b.views-a.views);
   if(!routicketVideos.length)throw new Error('El feed no contiene elementos multimedia reconocibles');
   routicketVisibleCount=24;renderRouticketFeed();
