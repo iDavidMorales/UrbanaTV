@@ -403,7 +403,7 @@ async function loadRouticketContent(){
     return '';
    }
    const raw=String(value).trim();if(!raw)return '';
-   const decoded=raw.replace(/&amp;/gi,'&').replace(/\\\\u0026/gi,'&');
+   const decoded=raw.replace(/&amp;/gi,'&').replace(/\\u0026/gi,'&');
    const direct=decoded.match(/(?:youtube(?:-nocookie)?\\.com\/(?:[^\\s"'<>]*?[?&]v=|embed\/|v\/|shorts\/|live\/)|youtu\\.be\/)([a-zA-Z0-9_-]{11})/i);
    if(direct)return direct[1];
    try{
