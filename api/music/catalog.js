@@ -38,19 +38,17 @@ export default async function handler(req, res) {
     const sortByTitle = sort === 'title';
     const sortByArtist = sort === 'artist';
     const facets = String(req.query?.facets || '') === '1';
-
-    const where = sql`
-      (COALESCE(${q}, '') = ''
-        OR LOWER(title) LIKE ${'%' + q + '%'}
-        OR LOWER(artist) LIKE ${'%' + q + '%'}
-        OR LOWER(COALESCE(description, '')) LIKE ${'%' + q + '%'}) 
-      AND (COALESCE(${artist}, '') = '' OR LOWER(artist) LIKE ${'%' + artist + '%'})
-    `;
+    const searchPattern = '%' + q + '%';
+    const artistPattern = '%' + artist + '%';
 
     const countRows = await sql`
       SELECT COUNT(*)::int AS total
       FROM urbana_tv.tracks
-      WHERE ${where}
+      WHERE (COALESCE(${q}, '') = ''
+        OR LOWER(title) LIKE ${searchPattern}
+        OR LOWER(artist) LIKE ${searchPattern}
+        OR LOWER(COALESCE(description, '')) LIKE ${searchPattern})
+        AND (COALESCE(${artist}, '') = '' OR LOWER(artist) LIKE ${artistPattern})
     `;
     const total = Number(countRows[0]?.total || 0);
 
@@ -58,7 +56,11 @@ export default async function handler(req, res) {
       SELECT id, title, artist, description,
              audio_url AS file, cover_url AS cover, created_at
       FROM urbana_tv.tracks
-      WHERE ${where}
+      WHERE (COALESCE(${q}, '') = ''
+        OR LOWER(title) LIKE ${searchPattern}
+        OR LOWER(artist) LIKE ${searchPattern}
+        OR LOWER(COALESCE(description, '')) LIKE ${searchPattern})
+        AND (COALESCE(${artist}, '') = '' OR LOWER(artist) LIKE ${artistPattern})
       ORDER BY
         CASE WHEN ${sortByTitle} THEN LOWER(title) END ASC,
         CASE WHEN ${sortByArtist} THEN LOWER(artist) END ASC,
