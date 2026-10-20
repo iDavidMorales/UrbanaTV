@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/music/catalog",
+      "destination": "/api/tracks?catalog=1"
+    },
+    {
       "source": "/ver",
       "destination": "/vista.html"
     },
