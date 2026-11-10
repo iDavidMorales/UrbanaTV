@@ -21,9 +21,7 @@ UrbanaTV ya no usa Neon ni ninguna base de datos:
 - **Noticias:** `data/articles.json` (artículos y eventos, con su contenido y reseñas publicadas). Lo sirve `/api/articles` y `/noticias/<slug>`.
 - **Los MP3 y las portadas** siguen en Vercel Blob (solo archivos, no base de datos).
 
-**Para agregar una canción:** sube el MP3 a Vercel Blob desde el panel de Vercel (Storage), copia su URL y añade una entrada en `mp3/catalog.json` en GitHub. Haz commit y Vercel redespliega solo.
-
-**Para publicar una noticia:** sube la portada a Vercel Blob desde el panel de Vercel, copia su URL y añade una entrada en `data/articles.json` en GitHub. Haz commit y Vercel redespliega solo.
+**Para publicar una noticia o una canción (sin base de datos):** llena el formulario en /noticias o /musica → el formulario sube la portada o el MP3 a Vercel Blob, genera el objeto JSON con la forma del archivo y lo guarda como borrador en tu navegador → descarga el JSON y pégalo en `data/articles.json` o `mp3/catalog.json` en GitHub → guarda y Vercel redespliega solo. Los borradores quedan en tu navegador: se pueden retomar, descargar o borrar desde el mismo formulario.
 
 **Cuentas y comunidad:** ya no hay cuentas con contraseña ni acceso por correo. Cada visitante elige su nombre en la página y se guarda solo en su navegador; sus estados del muro, sus comentarios en videos y sus valoraciones de noticias también viven solo en su dispositivo. Las notificaciones del servidor se retiraron. La analítica de video por servidor también se retiró (el reproductor ya no reporta vistas ni segundos de reproducción).
 

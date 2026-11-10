@@ -3,9 +3,11 @@
 // Sin base de datos: las lecturas no tocan Neon y no requieren DATABASE_URL.
 // Las reseñas publicadas se conservan en ese mismo archivo; las nuevas
 // valoraciones se guardan en el navegador de cada visitante (localStorage).
-// Para publicar una noticia nueva: añade su entrada en data/articles.json
-// en GitHub (la portada se sube a Vercel Blob desde el panel de Vercel);
-// Vercel redespliega solo. POST devuelve 410 con esa indicación.
+// Para publicar una noticia nueva: llena el formulario en /noticias (o el
+// modal de inicio); el formulario sube la portada a Vercel Blob, genera el
+// objeto JSON y lo guarda como borrador en el navegador para descargarlo y
+// pegarlo en data/articles.json en GitHub; Vercel redespliega solo.
+// POST devuelve 410 con esa indicación.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
