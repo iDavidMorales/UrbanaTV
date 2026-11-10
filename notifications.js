@@ -61,7 +61,7 @@ $('urbanNotifyRead')?.addEventListener('click',markRead);
 $('urbanEnableNotifications')?.addEventListener('click',enableNotifications);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshComments();checkForNewArticles()}});
 window.addEventListener('urban-comment-published',refreshComments);
-refreshComments();setInterval(refreshComments,60000);setInterval(checkForNewArticles,180000);
+refreshComments();/* Sin sondeo automático: las notificaciones se actualizan al abrir la campana, al volver a la pestaña o al publicar un comentario. */
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/service-worker.js').then(r=>{swReg=r}).catch(()=>{});
 if('Notification' in window&&Notification.permission==='granted'&&status())status().textContent='Las notificaciones están permitidas en este navegador.';
 })();

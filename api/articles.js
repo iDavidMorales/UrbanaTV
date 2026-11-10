@@ -1,6 +1,7 @@
 import {neon} from '@neondatabase/serverless';
 import {createHmac,timingSafeEqual} from 'node:crypto';
 const sql=process.env.DATABASE_URL?neon(process.env.DATABASE_URL):null;
+let articlesListCache={at:0,data:null};const ARTICLES_CACHE_MS=60000;
 const reply=(res,n,data)=>res.status(n).json(data);
 const slugify=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,75);
 function session(req){try{const token=(req.headers.cookie||'').split(';').map(v=>v.trim()).find(v=>v.startsWith('urbanatv_session='))?.slice('urbanatv_session='.length);const [payload,mac]=token.split('.');const a=createHmac('sha256',process.env.AUTH_SECRET).update(payload).digest(),b=Buffer.from(mac,'base64url');if(a.length!==b.length||!timingSafeEqual(a,b))return null;const x=JSON.parse(Buffer.from(payload,'base64url').toString());return x.exp>Date.now()?x.id:null}catch{return null}}
@@ -49,7 +50,7 @@ export default async function handler(req,res){
  if(req.method==='GET'&&String(req.query.render||'')==='1'){if(hiddenSlugs.has(slug))return reply(res,404,{error:'Publicación retirada'});return await renderArticle(req,res,slug)}
  if(req.method==='GET'){
  if(slug){if(hiddenSlugs.has(slug))return reply(res,404,{error:'Publicación retirada'});const a=await sql`SELECT a.id,a.slug,a.title,a.description,a.content,a.image_url,a.article_type,a.display_date,a.created_at,u.name AS author,COALESCE(ROUND(AVG(r.stars)::numeric,1),0) AS rating,COUNT(r.id)::int AS review_count FROM urbana_tv.articles a LEFT JOIN urbana_tv.users u ON u.id=a.author_id LEFT JOIN urbana_tv.article_reviews r ON r.article_id=a.id WHERE a.slug=${slug} GROUP BY a.id,u.name LIMIT 1`;if(!a.length)return reply(res,404,{error:'No se encontró la nota'});const reviews=await sql`SELECT r.id,r.stars,r.body,r.created_at,u.name FROM urbana_tv.article_reviews r JOIN urbana_tv.users u ON u.id=r.user_id WHERE r.article_id=${a[0].id} ORDER BY r.created_at DESC LIMIT 80`;return reply(res,200,{article:a[0],reviews})}
- const articles=await sql`SELECT a.slug,a.title,a.description,a.image_url,a.article_type,a.display_date,a.created_at,u.name AS author,COALESCE(ROUND(AVG(r.stars)::numeric,1),0) AS rating,COUNT(r.id)::int AS review_count FROM urbana_tv.articles a LEFT JOIN urbana_tv.users u ON u.id=a.author_id LEFT JOIN urbana_tv.article_reviews r ON r.article_id=a.id WHERE a.slug <> 'evento-1-de-noviembre-de-2026-mv22sqzz' GROUP BY a.id,u.name ORDER BY a.created_at DESC LIMIT 100`;return reply(res,200,{articles});
+ const now=Date.now();if(articlesListCache.data&&now-articlesListCache.at<ARTICLES_CACHE_MS){res.setHeader('Cache-Control','public, s-maxage=60, stale-while-revalidate=300');return reply(res,200,articlesListCache.data)}const articles=await sql`SELECT a.slug,a.title,a.description,a.image_url,a.article_type,a.display_date,a.created_at,u.name AS author,COALESCE(ROUND(AVG(r.stars)::numeric,1),0) AS rating,COUNT(r.id)::int AS review_count FROM urbana_tv.articles a LEFT JOIN urbana_tv.users u ON u.id=a.author_id LEFT JOIN urbana_tv.article_reviews r ON r.article_id=a.id WHERE a.slug <> 'evento-1-de-noviembre-de-2026-mv22sqzz' GROUP BY a.id,u.name ORDER BY a.created_at DESC LIMIT 100`;const body={articles};articlesListCache={at:now,data:body};res.setHeader('Cache-Control','public, s-maxage=60, stale-while-revalidate=300');return reply(res,200,body);
  }
  if(req.method!=='POST')return reply(res,405,{error:'Método no permitido'});if(req.headers.origin&&new URL(req.headers.origin).host!==req.headers.host)return reply(res,403,{error:'Origen no permitido'});
  const id=session(req);if(!id)return reply(res,401,{error:'Inicia sesión para participar'});
@@ -61,13 +62,13 @@ export default async function handler(req,res){
  if(imageUrl&&(!/^https:\/\//.test(imageUrl)||imageUrl.length>1500)||!['articulo','evento'].includes(articleType)||displayDate&&!/^\d{4}-\d{2}-\d{2}$/.test(displayDate)||articleType==='evento'&&!displayDate)return reply(res,400,{error:'Revisa portada, tipo y fecha'});
  const base=slugify(title);if(!base)return reply(res,400,{error:'Título inválido'});
  const slug=base+'-'+Date.now().toString(36);
- await sql`INSERT INTO urbana_tv.articles(slug,title,description,content,author_id,image_url,article_type,display_date) VALUES(${slug},${title},${description},${content},${id},${imageUrl||null},${articleType},${displayDate||null})`;return reply(res,201,{ok:true,slug});
+ await sql`INSERT INTO urbana_tv.articles(slug,title,description,content,author_id,image_url,article_type,display_date) VALUES(${slug},${title},${description},${content},${id},${imageUrl||null},${articleType},${displayDate||null})`;articlesListCache={at:0,data:null};return reply(res,201,{ok:true,slug});
  }
  if(action==='review'){
  const slug=String(data.slug||''),stars=Number(data.stars),body=String(data.body||'').trim();
  if(!Number.isInteger(stars)||stars<1||stars>5||body.length>1500)return reply(res,400,{error:'Estrellas o comentario inválido'});
  const a=await sql`SELECT id FROM urbana_tv.articles WHERE slug=${slug} LIMIT 1`;if(!a.length)return reply(res,404,{error:'Nota no encontrada'});
- await sql`INSERT INTO urbana_tv.article_reviews(article_id,user_id,stars,body) VALUES(${a[0].id},${id},${stars},${body}) ON CONFLICT(article_id,user_id) DO UPDATE SET stars=EXCLUDED.stars,body=EXCLUDED.body,created_at=now()`;return reply(res,200,{ok:true});
+ await sql`INSERT INTO urbana_tv.article_reviews(article_id,user_id,stars,body) VALUES(${a[0].id},${id},${stars},${body}) ON CONFLICT(article_id,user_id) DO UPDATE SET stars=EXCLUDED.stars,body=EXCLUDED.body,created_at=now()`;articlesListCache={at:0,data:null};return reply(res,200,{ok:true});
  }
  return reply(res,404,{error:'Acción desconocida'});
  }catch(e){console.error('articles API',e);return reply(res,500,{error:'No se pudo procesar la solicitud'})}

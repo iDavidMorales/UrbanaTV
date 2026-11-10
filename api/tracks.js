@@ -1,5 +1,10 @@
 import { neon } from '@neondatabase/serverless';
 
+// Caché en memoria (60 s) del catálogo del reproductor: evita pegar a Neon en
+// cada carga de página cuando la instancia está caliente. Se invalida al publicar un track.
+let playerTracksCache = { at: 0, data: null };
+const PLAYER_CACHE_MS = 60 * 1000;
+
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
@@ -66,13 +71,22 @@ export default async function handler(req, res) {
       await sql`INSERT INTO urbana_tv.tracks(title,artist,description,audio_url,cover_url,uploaded_by)
         VALUES(${String(d.title)},${String(d.artist)},${String(d.description || '').slice(0, 1200)},
         ${String(d.file)},${d.cover || null},${id})`;
+      playerTracksCache = { at: 0, data: null };
       return res.status(201).json({ ok: true });
     }
 
     if (!catalogMode) {
+      const now = Date.now();
+      if (playerTracksCache.data && now - playerTracksCache.at < PLAYER_CACHE_MS) {
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+        return res.status(200).json(playerTracksCache.data);
+      }
       const rows = await sql`SELECT title,artist,description,audio_url AS file,cover_url AS cover
         FROM urbana_tv.tracks ORDER BY created_at DESC LIMIT 200`;
-      return res.status(200).json({ tracks: rows });
+      const body = { tracks: rows };
+      playerTracksCache = { at: now, data: body };
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      return res.status(200).json(body);
     }
 
     const q = String(req.query?.q || '').trim().slice(0, 100).toLocaleLowerCase();

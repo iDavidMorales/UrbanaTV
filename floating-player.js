@@ -104,7 +104,7 @@ fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo
  }
  function tick(){
   const now=Date.now(),elapsed=(now-lastTick)/1000;
-  if(video&&playing&&elapsed>=2&&elapsed<=22)send('watch',{seconds:Math.min(20,Math.round(elapsed))});
+  if(video&&playing&&elapsed>=2&&elapsed<=62)send('watch',{seconds:Math.min(60,Math.round(elapsed))});
   lastTick=now;
  }
  function stop(){tick();if(timer)clearInterval(timer);timer=null;video=null;lastTick=0;playing=false;logged=''}
@@ -124,7 +124,7 @@ fetch('/api/tracks',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Catálogo
    try{src=new URL(iframe.src);if(src.searchParams.get('enablejsapi')!=='1'){src.searchParams.set('enablejsapi','1');src.searchParams.set('origin',location.origin);window.dispatchEvent(new Event('urban-video-end'));iframe.src=src.toString();return}}catch(e){}
    if(logged!==id){send('view');logged=id}
    iframe.addEventListener('load',()=>subscribe(iframe),{once:true});
-   timer=setInterval(()=>{if(playing)tick()},10000);
+   timer=setInterval(()=>{if(playing)tick()},60000);
    setTimeout(()=>subscribe(iframe),700);
   }
  }
