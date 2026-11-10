@@ -13,14 +13,14 @@ function render(){
  const unread=entries.filter(x=>new Date(x.created_at).getTime()>seen).length;badge.hidden=!unread;badge.textContent=unread>9?'9+':String(unread);
 }
 function markRead(){seen=Date.now();if(userId)try{localStorage.setItem(key(userId),String(seen))}catch{};render()}
+/* Sin notificaciones de servidor: los avisos vivían en la base de datos. La campana ya no consulta el servidor. */
+function localUserId(){try{const u=JSON.parse(localStorage.getItem('urbanatv:local-user-v1')||'null');return u&&u.name?'local':null}catch(e){return null}}
 async function refreshComments(){
  if(document.hidden)return;
- try{
- const me=await fetch('/api/social?action=me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.json());
- if(!me.user){userId=null;entries=[];badge.hidden=true;if(!panel.hidden)err('Inicia sesión para ver comentarios nuevos.');return}
- if(userId!==String(me.user.id)){userId=String(me.user.id);try{const value=localStorage.getItem(key(userId));seen=value?Number(value):Date.now();if(!value)localStorage.setItem(key(userId),String(seen))}catch{seen=Date.now()}}
- const result=await fetch('/api/social?action=notifications',{credentials:'same-origin',cache:'no-store'});if(!result.ok)throw Error();const data=await result.json();entries=Array.isArray(data.notifications)?data.notifications:[];render();
- }catch{if(!panel.hidden)err('No se pudieron actualizar las notificaciones.')}
+ const id=localUserId();
+ if(!id){userId=null;entries=[];badge.hidden=true;if(!panel.hidden)err('Elige tu nombre en la página para ver avisos.');return}
+ if(userId!==id){userId=id;try{const value=localStorage.getItem(key(userId));seen=value?Number(value):Date.now();if(!value)localStorage.setItem(key(userId),String(seen))}catch(e){seen=Date.now()}}
+ entries=[];render();
 }
 async function enableNotifications(){
  const button=$('urbanEnableNotifications');

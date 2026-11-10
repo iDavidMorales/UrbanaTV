@@ -1,10 +1,1 @@
-{
-  "name": "urbanatv",
-  "private": true,
-  "version": "1.0.0",
-  "type": "module",
-  "dependencies": {
-    "@vercel/blob": "^1.0.0",
-    "@neondatabase/serverless": "^1.0.1"
-  }
-}
+{"dependencies":{"@vercel/blob":"^1.0.0"},"name":"urbanatv","private":true,"type":"module","version":"1.0.0"}
