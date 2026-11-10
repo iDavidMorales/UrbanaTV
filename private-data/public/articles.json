@@ -1,0 +1,50 @@
+{
+  "articles": [
+    {
+      "id": "3",
+      "slug": "cambiarme-de-ciudad-me-cambio-mas-de-lo-que-imaginaba-mv233z98",
+      "title": "Cambiarme de ciudad me cambió más de lo que imaginaba.",
+      "description": "Cambiarme de ciudad me cambió más de lo que imaginaba.",
+      "content": "Cambiarme de ciudad me cambió más de lo que imaginaba.\nPlaya del Carmen llegó a mi vida en un momento en el que necesitaba moverme, conocerme de otra manera y dejar espacio para cosas nuevas.\nNo ha sido sencillo. Hay días de emoción, otros de nostalgia y muchos en los que simplemente estoy aprendiendo a adaptarme. Pero también he encontrado momentos que me recuerdan por qué decidí estar aquí.\nQuiero vivir esta etapa con intención: sumar donde esté, conocer gente que aporte, disfrutar lo que tengo frente a mí y sanar lo que todavía llevo conmigo.\nNo sé exactamente qué me espera aquí, y por primera vez no siento la necesidad de saberlo todo.\nSolo sé que hoy estoy aqui! Gracias playita del Carmen 🙏🏻 @QuiroAtiendete\n\nhttps://www.facebook.com/permalink.php?story_fbid=pfbid08TLhBtqHfbwtLPu8dvVvpVu7shzvfDNKVEquKM9P6kCm6BSRHTWjPpHH6k2jrLVGl&id=100093303420515",
+      "image_url": "https://asp8uev3eqk2ijhp.public.blob.vercel-storage.com/news/covers/Captura%20de%20Pantalla%202026-10-10%20a%20la%28s%29%202.39.07%20a.m.-3woqIOGsePoGuf8u4XhEjHR2SOb4uy.png",
+      "article_type": "articulo",
+      "display_date": "2026-10-10T00:00:00.000Z",
+      "created_at": "2026-10-10T07:40:19.410Z",
+      "author": "David Morales",
+      "rating": "5.0",
+      "review_count": 1,
+      "reviews": [
+        {
+          "id": "2",
+          "stars": 5,
+          "body": "Real aqui hay mucha vida",
+          "created_at": "2026-10-11T06:06:07.153Z",
+          "name": "David Morales"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "slug": "evento-1-de-noviembre-de-2026-mv22x5ym",
+      "title": "Evento 1 de noviembre de 2026",
+      "description": "🎤 Sureste Street Culture PRESENTA 🎤",
+      "content": "🎤 Sureste Street Culture PRESENTA 🎤\n\n🔥 ¡EL LINE UP OFICIAL! 🔥\n\nEl escenario se prepara para recibir el talento, las rimas y la esencia de la cultura hip-hop. 🎶🔥\n\nJunto a nuestro artista principal e invitado especial, Señor Marrano tendremos a grandes exponentes del rap que llegarán a representar su estilo y su barrio. 🎙️💣\n\nEsto no es solo música, es cultura, identidad y resistencia. 💥\n\n📍 Playa del Carmen, Quintana Roo\n📅 1 de noviembre de 2026\n\n🔥 SURESTE STREET CULTURE\nDonde las calles se convierten en cultura.\nTOTALMENTE GRATIS",
+      "image_url": "https://asp8uev3eqk2ijhp.public.blob.vercel-storage.com/news/covers/Captura%20de%20Pantalla%202026-10-10%20a%20la%28s%29%202.29.02%20a.m.-ipqImQdyQ4hnNRZtQHmn3eWHJRhr8m.png",
+      "article_type": "evento",
+      "display_date": "2026-11-01T00:00:00.000Z",
+      "created_at": "2026-10-10T07:35:01.500Z",
+      "author": "David Morales",
+      "rating": "5.0",
+      "review_count": 1,
+      "reviews": [
+        {
+          "id": "1",
+          "stars": 5,
+          "body": "Me interesa",
+          "created_at": "2026-10-10T10:14:32.847Z",
+          "name": "David Morales"
+        }
+      ]
+    }
+  ]
+}
