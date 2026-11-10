@@ -1,9 +1,12 @@
-import { neon } from '@neondatabase/serverless';
+import { list, put } from '@vercel/blob';
+import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 
-// Caché en memoria (60 s) del catálogo del reproductor: evita pegar a Neon en
-// cada carga de página cuando la instancia está caliente. Se invalida al publicar un track.
+const require = createRequire(import.meta.url);
+const seedTracks = require('../mp3/catalog.json');
 let playerTracksCache = { at: 0, data: null };
 const PLAYER_CACHE_MS = 60 * 1000;
+const BLOB_PREFIX = 'mp3/catalog/';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -12,9 +15,62 @@ const cors = {
   'Access-Control-Max-Age': '86400',
 };
 
+function normalizeTrack(track) {
+  const file = String(track?.file || track?.audio_url || '');
+  if (!/^https:\/\/.+\.public\.blob\.vercel-storage\.com\//i.test(file)) return null;
+  return {
+    id: String(track.id || randomUUID()),
+    title: String(track.title || 'Sin título').slice(0, 150),
+    artist: String(track.artist || 'Artista desconocido').slice(0, 120),
+    description: String(track.description || '').slice(0, 1200),
+    file,
+    cover: track.cover || track.cover_url || null,
+    updated_at: track.updated_at || track.created_at || null,
+  };
+}
+
+async function loadTracks() {
+  const seed = Array.isArray(seedTracks) ? seedTracks.map(normalizeTrack).filter(Boolean) : [];
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return seed;
+  const { blobs = [] } = await list({ prefix: BLOB_PREFIX, limit: 1000 });
+  const saved = await Promise.all(blobs.map(async blob => {
+    try {
+      const response = await fetch(blob.url, { cache: 'no-store' });
+      if (!response.ok) return null;
+      return normalizeTrack(await response.json());
+    } catch { return null; }
+  }));
+  const byId = new Map();
+  for (const track of [...seed, ...saved.filter(Boolean)]) byId.set(track.id, track);
+  return [...byId.values()].sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+}
+
+async function getTracks() {
+  const now = Date.now();
+  if (playerTracksCache.data && now - playerTracksCache.at < PLAYER_CACHE_MS) return playerTracksCache.data;
+  const tracks = await loadTracks();
+  playerTracksCache = { at: now, data: tracks };
+  return tracks;
+}
+
+function sessionUser(req) {
+  const cookie = (req.headers.cookie || '').split(';').map(x => x.trim())
+    .find(x => x.startsWith('urbanatv_session='))?.slice('urbanatv_session='.length);
+  if (!cookie || !process.env.AUTH_SECRET) return null;
+  try {
+    const [payload, signature] = cookie.split('.');
+    if (!payload || !signature) return null;
+    const expected = createHmac('sha256', process.env.AUTH_SECRET).update(payload).digest();
+    const received = Buffer.from(signature, 'base64url');
+    if (expected.length !== received.length || !timingSafeEqual(expected, received)) return null;
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (data.exp < Date.now() || data.id == null) return null;
+    return String(data.id);
+  } catch { return null; }
+}
+
 export default async function handler(req, res) {
   const catalogMode = String(req.query?.catalog || '') === '1';
-
   if (catalogMode) {
     for (const [key, value] of Object.entries(cors)) res.setHeader(key, value);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -27,64 +83,38 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  if (!process.env.DATABASE_URL) {
-    if (catalogMode) {
-      res.setHeader('Cache-Control', 'no-store');
-      return res.status(503).json({
-        ok: false,
-        error: 'music_database_not_configured',
-        message: 'Falta configurar DATABASE_URL en Vercel.',
-        tracks: [], total: 0, limit: 0, offset: 0, has_more: false,
-      });
-    }
-    return res.status(503).json({ error: 'Base de datos no configurada' });
-  }
-
   try {
-    const sql = neon(process.env.DATABASE_URL);
-
     if (req.method === 'POST') {
-      const cookie = (req.headers.cookie || '').split(';').map(x => x.trim())
-        .find(x => x.startsWith('urbanatv_session='))?.slice('urbanatv_session='.length);
-      if (!cookie) return res.status(401).json({ error: 'Inicia sesión' });
-
-      const { createHmac, timingSafeEqual } = await import('node:crypto');
-      let id;
-      try {
-        const [p, s] = cookie.split('.');
-        const a = createHmac('sha256', process.env.AUTH_SECRET).update(p).digest();
-        const b = Buffer.from(s, 'base64url');
-        if (a.length !== b.length || !timingSafeEqual(a, b)) throw Error();
-        const d = JSON.parse(Buffer.from(p, 'base64url').toString());
-        if (d.exp < Date.now()) throw Error();
-        id = String(d.id);
-      } catch {
-        return res.status(401).json({ error: 'Sesión inválida' });
+      const userId = sessionUser(req);
+      if (!userId) return res.status(401).json({ error: 'Inicia sesión' });
+      if (!process.env.BLOB_READ_WRITE_TOKEN) {
+        return res.status(503).json({ error: 'music_storage_not_configured', message: 'Falta configurar Vercel Blob.' });
       }
-
-      const d = req.body || {};
-      if (!d.title || !d.artist ||
-          !String(d.file || '').includes('.public.blob.vercel-storage.com/') ||
-          String(d.title).length > 150 || String(d.artist).length > 120) {
-        return res.status(400).json({ error: 'Datos inválidos' });
-      }
-      await sql`INSERT INTO urbana_tv.tracks(title,artist,description,audio_url,cover_url,uploaded_by)
-        VALUES(${String(d.title)},${String(d.artist)},${String(d.description || '').slice(0, 1200)},
-        ${String(d.file)},${d.cover || null},${id})`;
+      const data = req.body || {};
+      const track = normalizeTrack({
+        id: randomUUID(),
+        title: data.title,
+        artist: data.artist,
+        description: data.description,
+        file: data.file,
+        cover: data.cover,
+        updated_at: new Date().toISOString(),
+        uploaded_by: userId,
+      });
+      if (!track || !data.title || !data.artist) return res.status(400).json({ error: 'Datos inválidos' });
+      const path = BLOB_PREFIX + track.id + '.json';
+      await put(path, JSON.stringify({ ...track, uploaded_by: userId }), {
+        access: 'public',
+        addRandomSuffix: false,
+        contentType: 'application/json',
+      });
       playerTracksCache = { at: 0, data: null };
-      return res.status(201).json({ ok: true });
+      return res.status(201).json({ ok: true, id: track.id });
     }
 
+    const tracks = await getTracks();
     if (!catalogMode) {
-      const now = Date.now();
-      if (playerTracksCache.data && now - playerTracksCache.at < PLAYER_CACHE_MS) {
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        return res.status(200).json(playerTracksCache.data);
-      }
-      const rows = await sql`SELECT title,artist,description,audio_url AS file,cover_url AS cover
-        FROM urbana_tv.tracks ORDER BY created_at DESC LIMIT 200`;
-      const body = { tracks: rows };
-      playerTracksCache = { at: now, data: body };
+      const body = { tracks: tracks.map(({ title, artist, description, file, cover }) => ({ title, artist, description, file, cover })) };
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       return res.status(200).json(body);
     }
@@ -99,82 +129,32 @@ export default async function handler(req, res) {
     const sortByTitle = sort === 'title';
     const sortByArtist = sort === 'artist';
     const facets = String(req.query?.facets || '') === '1';
-    const searchPattern = '%' + q + '%';
-    const artistPattern = '%' + artist + '%';
-
-    const countRows = await sql`
-      SELECT COUNT(*)::int AS total
-      FROM urbana_tv.tracks
-      WHERE audio_url LIKE 'https://%'
-        AND (COALESCE(${q}, '') = ''
-          OR LOWER(title) LIKE ${searchPattern}
-          OR LOWER(artist) LIKE ${searchPattern}
-          OR LOWER(COALESCE(description, '')) LIKE ${searchPattern})
-        AND (COALESCE(${artist}, '') = '' OR LOWER(artist) LIKE ${artistPattern})
-    `;
-    const total = Number(countRows[0]?.total || 0);
-
-    const rows = await sql`
-      SELECT id, title, artist, description,
-             audio_url AS file, cover_url AS cover, created_at
-      FROM urbana_tv.tracks
-      WHERE audio_url LIKE 'https://%'
-        AND (COALESCE(${q}, '') = ''
-          OR LOWER(title) LIKE ${searchPattern}
-          OR LOWER(artist) LIKE ${searchPattern}
-          OR LOWER(COALESCE(description, '')) LIKE ${searchPattern})
-        AND (COALESCE(${artist}, '') = '' OR LOWER(artist) LIKE ${artistPattern})
-      ORDER BY
-        CASE WHEN ${sortByTitle} THEN LOWER(title) END ASC,
-        CASE WHEN ${sortByArtist} THEN LOWER(artist) END ASC,
-        CASE WHEN NOT ${sortByTitle} AND NOT ${sortByArtist} THEN created_at END DESC,
-        id DESC
-      LIMIT ${limit} OFFSET ${offset}
-    `;
-
-    const tracks = rows.map(row => ({
-      id: row.id,
-      title: row.title || 'Sin título',
-      artist: row.artist || 'Artista desconocido',
-      description: row.description || '',
-      file: row.file,
-      stream_url: row.file,
-      cover: row.cover || null,
-      cover_url: row.cover || null,
-      updated_at: row.created_at ? new Date(row.created_at).toISOString() : null,
+    const filtered = tracks.filter(t =>
+      (!q || [t.title, t.artist, t.description].some(v => String(v || '').toLowerCase().includes(q))) &&
+      (!artist || String(t.artist || '').toLowerCase().includes(artist))
+    );
+    filtered.sort((a, b) => sortByTitle
+      ? a.title.localeCompare(b.title)
+      : sortByArtist ? a.artist.localeCompare(b.artist)
+      : String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+    const page = filtered.slice(offset, offset + limit).map(t => ({
+      ...t, stream_url: t.file, cover_url: t.cover || null,
     }));
-
-    let artists;
-    if (facets) {
-      const artistRows = await sql`
-        SELECT DISTINCT artist FROM urbana_tv.tracks
-        WHERE COALESCE(artist, '') <> '' AND audio_url LIKE 'https://%'
-        ORDER BY LOWER(artist) ASC LIMIT 1000
-      `;
-      artists = artistRows.map(row => row.artist);
-    }
-
+    const artists = facets ? [...new Set(tracks.map(t => t.artist).filter(Boolean))].sort((a, b) => a.localeCompare(b)).slice(0, 1000) : undefined;
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     res.setHeader('Vary', 'Origin');
     if (req.method === 'HEAD') return res.status(200).end();
     return res.status(200).json({
-      ok: true, source: 'UrbanaTV', total, limit, offset,
-      has_more: offset + rows.length < total,
+      ok: true, source: 'UrbanaTV JSON + Vercel Blob', total: filtered.length, limit, offset,
+      has_more: offset + page.length < filtered.length,
       sort: sortByTitle ? 'title' : sortByArtist ? 'artist' : 'newest',
-      filters: { q, artist },
-      ...(artists ? { artists } : {}),
-      tracks,
+      filters: { q, artist }, ...(artists ? { artists } : {}), tracks: page,
     });
   } catch (error) {
-    console.error(catalogMode ? '[api/tracks catalog] query failed:' : '[api/tracks] request failed:',
-      error?.message || error);
+    console.error('[api/tracks] request failed:', error?.message || error);
     if (catalogMode) {
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(500).json({
-        ok: false, error: 'music_catalog_unavailable',
-        message: 'No se pudo consultar el catálogo musical.',
-        tracks: [], total: 0, limit: 0, offset: 0, has_more: false,
-      });
+      return res.status(500).json({ ok: false, error: 'music_catalog_unavailable', tracks: [], total: 0, limit: 0, offset: 0, has_more: false });
     }
     return res.status(500).json({ error: 'No se pudieron cargar las canciones' });
   }
