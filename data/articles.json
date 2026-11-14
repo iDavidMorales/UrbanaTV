@@ -1,6 +1,20 @@
 {
   "articles": [
     {
+      "id": "10",
+      "slug": "canaco-alerta-falsas-ofertas-buen-fin-playa-del-carmen",
+      "title": "Canaco alerta por falsas ofertas en el Buen Fin: qué deben cuidar los negocios de Playa",
+      "description": "La Canaco Servytur de Playa del Carmen prevé que las ventas suban 7.3% en el Buen Fin, del 13 al 17 de noviembre, y advirtió por las ofertas falsas: subir precios antes para simular descuentos, anunciar productos sin existencias o entregar mercancía distinta a la ofrecida. La Profeco recorrerá las plazas y dará seguimiento a las inconformidades.",
+      "content": "La Cámara Nacional de Comercio, Servicios y Turismo (Canaco Servytur) de Playa del Carmen prevé que las ventas aumenten 7.3 por ciento durante la edición 16 del Buen Fin, que se realiza del 13 al 17 de noviembre. El organismo reportó una buena participación de negocios locales. Iovanna Franco Cervantes, presidenta de la cámara, informó que por primera vez cuentan con una plataforma digital donde los comercios pueden registrarse y publicar sus promociones para que el público las consulte antes de comprar, y también invitó a los negocios a solicitar el cartel oficial que los identifica como participantes.\n\nLa advertencia llegó con la jornada en marcha: Franco Cervantes señaló que entre las malas prácticas que pueden presentarse están elevar los precios antes del Buen Fin para simular descuentos, anunciar productos sin existencias o entregar mercancía distinta a la ofrecida. Precisó que la Canaco carece de un registro de precios por establecimiento y pidió a los comerciantes respetar las ofertas anunciadas. La cámara mantiene coordinación con la Procuraduría Federal del Consumidor (Profeco), que realizará recorridos en plazas comerciales y dará seguimiento a las inconformidades que se presenten durante la jornada.\n\nPara los negocios locales de Playa —los de Routicket incluidos— el cuidado es concreto: no subir precios antes para simular un descuento, publicar solo promociones con existencias reales, entregar exactamente lo anunciado y respetar la oferta. Y si un cliente reporta una oferta engañosa, atender la inconformidad de inmediato y tener a la mano el comprobante de compra y la promoción publicada, porque la Profeco está recorriendo las plazas y dando seguimiento durante la jornada. A los consumidores, la cámara les recomendó comparar precios, solicitar el comprobante de compra y verificar que el producto corresponda con lo anunciado, además de valorar si la compra es necesaria antes de decidirse por una promoción o por los meses sin intereses.\n\nFuente: Saber Político — https://saberpolitico.com/quintana-roo/playa-del-carmen/buen-fin-alerta-por-falsas-ofertas/\nFoto: Saber Político.",
+      "article_type": "articulo",
+      "display_date": "2026-11-14T00:00:00.000Z",
+      "created_at": "2026-11-14T17:05:48.000Z",
+      "author": "David Morales",
+      "rating": "0.0",
+      "review_count": 0,
+      "reviews": []
+    },
+    {
       "id": "9",
       "slug": "proteccion-civil-playa-del-carmen-tabulador-cobros-inspecciones-comercios",
       "title": "Protección Civil prepara tabulador de cobros e inspecciones a comercios en Playa del Carmen",
