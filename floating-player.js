@@ -1,4 +1,21 @@
 (()=>{
+/* REPRODUCTOR DESACTIVADO TEMPORALMENTE (18 nov 2026, por orden de Kali):
+   el mini reproductor flotante queda APAGADO en todo el sitio (index, vista y
+   codigo) hasta que se decida reactivarlo. No se borró nada: el marcado, los
+   estilos y la biblioteca /musica siguen intactos.
+   PARA REACTIVARLO: cambia PLAYER_DISABLED a false. */
+const PLAYER_DISABLED = true;
+if (PLAYER_DISABLED) {
+  const hidePlayer = () => {
+    document.getElementById('urbanMiniPlayer')?.setAttribute('hidden', '');
+    document.getElementById('urbanMiniOpen')?.setAttribute('hidden', '');
+    const a = document.getElementById('urbanMiniAudio');
+    if (a) { a.pause(); a.removeAttribute('src'); }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hidePlayer);
+  else hidePlayer();
+  return;
+}
 const $=id=>document.getElementById(id);
 const panel=$('urbanMiniPlayer'),audio=$('urbanMiniAudio');
 if(!panel||!audio)return;
