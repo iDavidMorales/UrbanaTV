@@ -1,12 +1,32 @@
-import { list, put } from '@vercel/blob';
+// UrbanaTV — /api/tracks (catálogo del reproductor de música)
+//
+// CAMBIO 2026-11-16: ya NO se lista el catálogo de Blob en cada lectura.
+// Antes, cada visita al reproductor hacía list() sobre mp3/catalog/ y eso
+// quemó las 2.000 operaciones avanzadas de Blob del plan Hobby (6,8K en el
+// ciclo). Ahora las lecturas usan UNA sola fuente:
+//
+//   1. El catálogo semilla del repo (mp3/catalog.json), que siempre está.
+//   2. Un único índice en Blob, mp3/catalog/index.json, con los temas que
+//      se agregan desde el panel. Se lee con UN solo GET (operación simple,
+//      no avanzada); si Blob está bloqueado o el índice no existe, se usa
+//      solo la semilla y el reproductor sigue sonando.
+//
+// Al agregar un tema (POST, solo con sesión) se reescribe ese único índice
+// con put(): una sola operación avanzada por tema nuevo, no una por lectura.
+// La primera vez que se agrega un tema después de este cambio, el POST
+// migra una sola vez los archivos viejos mp3/catalog/<id>.json (list() una
+// única vez); si Blob está bloqueado en ese momento, la migración queda
+// pendiente (migrated:false) y se reintenta en el siguiente POST.
+import { put } from '@vercel/blob';
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const seedTracks = require('../mp3/catalog.json');
 let playerTracksCache = { at: 0, data: null };
-const PLAYER_CACHE_MS = 60 * 1000;
+const PLAYER_CACHE_MS = 5 * 60 * 1000;
 const BLOB_PREFIX = 'mp3/catalog/';
+const INDEX_FILE = 'mp3/catalog/index.json';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -29,20 +49,66 @@ function normalizeTrack(track) {
   };
 }
 
-async function loadTracks() {
-  const seed = Array.isArray(seedTracks) ? seedTracks.map(normalizeTrack).filter(Boolean) : [];
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return seed;
+// El índice vive en el mismo almacén que los audios: su host se deduce de
+// las URLs de la semilla, sin llamar a list().
+function indexUrl() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  const seed = Array.isArray(seedTracks) ? seedTracks : [];
+  for (const track of seed) {
+    const file = String(track?.file || track?.audio_url || '');
+    const match = file.match(/^https:\/\/([a-z0-9-]+\.public\.blob\.vercel-storage\.com)\//i);
+    if (match) return `https://${match[1]}/${INDEX_FILE}`;
+  }
+  return null;
+}
+
+// Lee el documento índice { migrated, tracks } o null si no existe /
+// Blob no responde. Nunca lanza: sin índice, la semilla basta.
+async function fetchIndexDoc() {
+  const url = indexUrl();
+  if (!url) return null;
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const doc = await response.json();
+    if (!doc || !Array.isArray(doc.tracks)) return null;
+    return { migrated: doc.migrated === true, tracks: doc.tracks.map(normalizeTrack).filter(Boolean) };
+  } catch {
+    return null;
+  }
+}
+
+// Migración única de los archivos viejos mp3/catalog/<id>.json al índice.
+// Solo se llama desde POST; si Blob está bloqueado, lanza y el POST guarda
+// solo el tema nuevo con migrated:false para reintentarlo después.
+async function migrateLegacyTracks() {
+  const { list } = await import('@vercel/blob');
   const { blobs = [] } = await list({ prefix: BLOB_PREFIX, limit: 1000 });
-  const saved = await Promise.all(blobs.map(async blob => {
+  const legacy = blobs.filter(
+    (blob) => blob.pathname !== INDEX_FILE && blob.pathname.endsWith('.json')
+  );
+  const saved = await Promise.all(legacy.map(async (blob) => {
     try {
       const response = await fetch(blob.url, { cache: 'no-store' });
       if (!response.ok) return null;
       return normalizeTrack(await response.json());
     } catch { return null; }
   }));
+  return saved.filter(Boolean);
+}
+
+function mergeTracks(seed, extra) {
   const byId = new Map();
-  for (const track of [...seed, ...saved.filter(Boolean)]) byId.set(track.id, track);
+  for (const track of [...seed, ...extra]) byId.set(track.id, track);
   return [...byId.values()].sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+}
+
+async function loadTracks() {
+  const seed = Array.isArray(seedTracks) ? seedTracks.map(normalizeTrack).filter(Boolean) : [];
+  const doc = await fetchIndexDoc();
+  // Sin índice, la semilla sale en el orden del archivo, como antes.
+  if (!doc) return seed;
+  return mergeTracks(seed, doc.tracks);
 }
 
 async function getTracks() {
@@ -102,8 +168,29 @@ export default async function handler(req, res) {
         uploaded_by: userId,
       });
       if (!track || !data.title || !data.artist) return res.status(400).json({ error: 'Datos inválidos' });
-      const path = BLOB_PREFIX + track.id + '.json';
-      await put(path, JSON.stringify({ ...track, uploaded_by: userId }), {
+      let base = [];
+      let migrated = false;
+      const doc = await fetchIndexDoc();
+      if (doc) {
+        base = doc.tracks;
+        migrated = doc.migrated;
+      }
+      if (!migrated) {
+        try {
+          const legacy = await migrateLegacyTracks();
+          base = mergeTracks(base, legacy);
+          migrated = true;
+        } catch {
+          // Blob bloqueado: se guarda solo el tema nuevo; la migración
+          // queda pendiente para el siguiente POST.
+        }
+      }
+      const merged = mergeTracks(base, [track]);
+      await put(INDEX_FILE, JSON.stringify({
+        migrated,
+        updated_at: new Date().toISOString(),
+        tracks: merged.map((t) => ({ ...t, uploaded_by: userId })),
+      }), {
         access: 'public',
         addRandomSuffix: false,
         contentType: 'application/json',
@@ -115,7 +202,7 @@ export default async function handler(req, res) {
     const tracks = await getTracks();
     if (!catalogMode) {
       const body = { tracks: tracks.map(({ title, artist, description, file, cover }) => ({ title, artist, description, file, cover })) };
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
       return res.status(200).json(body);
     }
 
@@ -141,7 +228,7 @@ export default async function handler(req, res) {
       ...t, stream_url: t.file, cover_url: t.cover || null,
     }));
     const artists = facets ? [...new Set(tracks.map(t => t.artist).filter(Boolean))].sort((a, b) => a.localeCompare(b)).slice(0, 1000) : undefined;
-    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
     res.setHeader('Vary', 'Origin');
     if (req.method === 'HEAD') return res.status(200).end();
     return res.status(200).json({
